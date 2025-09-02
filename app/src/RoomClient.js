@@ -50,6 +50,7 @@ export default class RoomClient {
 		sharingScalabilityMode,
 		numSimulcastStreams,
 		preferLocalCodecsOrder,
+		forcePCMA,
 		forceVP8,
 		forceH264,
 		forceVP9,
@@ -112,6 +113,10 @@ export default class RoomClient {
 		// configured in the server.
 		// @type {Boolean}
 		this._preferLocalCodecsOrder = Boolean(preferLocalCodecsOrder);
+
+		// Force PCMA codec for sending.
+		// @type {Boolean}
+		this._forcePCMA = Boolean(forcePCMA);
 
 		// Force VP8 codec for sending.
 		// @type {Boolean}
@@ -803,6 +808,26 @@ export default class RoomClient {
 				track = stream.getAudioTracks()[0].clone();
 			}
 
+			let codec;
+			let codecOptions = {
+				opusStereo: true,
+				opusDtx: true,
+				opusFec: true,
+				opusNack: true,
+			};
+
+			if (this._forcePCMA) {
+				codec = this._mediasoupDevice.rtpCapabilities.codecs.find(
+					c => c.mimeType.toLowerCase() === 'audio/pcma'
+				);
+
+				if (!codec) {
+					throw new Error('desired PCMA codec+configuration is not supported');
+				}
+
+				codecOptions = undefined;
+			}
+
 			this._micProducer = await this._sendTransport.produce({
 				track,
 				codecOptions: {
@@ -811,9 +836,7 @@ export default class RoomClient {
 					opusFec: true,
 					opusNack: true,
 				},
-				// NOTE: for testing codec selection.
-				// codec : this._mediasoupDevice.rtpCapabilities.codecs
-				// 	.find((codec) => codec.mimeType.toLowerCase() === 'audio/pcma')
+				codec,
 			});
 
 			if (this._e2eKey && e2e.isSupported()) {

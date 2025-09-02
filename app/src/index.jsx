@@ -77,6 +77,7 @@ async function run() {
 	const datachannel = urlParser.query.datachannel !== 'false';
 	const preferLocalCodecsOrder =
 		urlParser.query.preferLocalCodecsOrder === 'true';
+	const forcePCMA = urlParser.query.forcePCMA === 'true';
 	const forceVP8 = urlParser.query.forceVP8 === 'true';
 	const forceH264 = urlParser.query.forceH264 === 'true';
 	const forceVP9 = urlParser.query.forceVP9 === 'true';
@@ -133,6 +134,7 @@ async function run() {
 			case 'webcam':
 			case 'datachannel':
 			case 'preferLocalCodecsOrder':
+			case 'forcePCMA':
 			case 'forceVP8':
 			case 'forceH264':
 			case 'forceVP9':
@@ -197,6 +199,7 @@ async function run() {
 		mic,
 		webcam,
 		preferLocalCodecsOrder,
+		forcePCMA,
 		forceVP8,
 		forceH264,
 		forceVP9,
