@@ -1696,8 +1696,6 @@ export default class RoomClient {
 	async enableChatDataProducer() {
 		logger.debug('enableChatDataProducer()');
 
-		if (!this._useDataChannel) return;
-
 		// NOTE: Should enable this code but it's useful for testing.
 		// if (this._chatDataProducer)
 		// 	return;
@@ -1773,8 +1771,6 @@ export default class RoomClient {
 
 	async enableBotDataProducer() {
 		logger.debug('enableBotDataProducer()');
-
-		if (!this._useDataChannel) return;
 
 		// NOTE: Should enable this code but it's useful for testing.
 		// if (this._botDataProducer)
@@ -2378,12 +2374,10 @@ export default class RoomClient {
 				)
 					this.enableWebcam();
 
-				this._sendTransport.on('connectionstatechange', connectionState => {
-					if (connectionState === 'connected') {
-						this.enableChatDataProducer();
-						this.enableBotDataProducer();
-					}
-				});
+				if (this._useDataChannel) {
+					this.enableChatDataProducer();
+					this.enableBotDataProducer();
+				}
 			}
 
 			if (this._stats) {
