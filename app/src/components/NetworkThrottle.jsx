@@ -8,16 +8,17 @@ class NetworkThrottle extends React.Component {
 		super(props);
 
 		this.state = {
-			uplink: '',
-			downlink: '',
+			up: '',
+			down: '',
 			rtt: '',
 			packetLoss: '',
+			localhost: false,
 			disabled: false,
 		};
 	}
 
 	render() {
-		const { uplink, downlink, rtt, packetLoss, disabled } = this.state;
+		const { up, down, rtt, packetLoss, localhost, disabled } = this.state;
 
 		return (
 			<Draggable
@@ -40,17 +41,15 @@ class NetworkThrottle extends React.Component {
 							<p className="key">UPLINK (kbps)</p>
 
 							<input
-								className="value"
+								className="text-value"
 								type="text"
 								placeholder="NO LIMIT"
 								disabled={disabled}
 								pattern="[0-9]*"
-								value={uplink}
+								value={up}
 								autoCorrect="false"
 								spellCheck="false"
-								onChange={event =>
-									this.setState({ uplink: event.target.value })
-								}
+								onChange={event => this.setState({ up: event.target.value })}
 							/>
 						</div>
 
@@ -58,17 +57,15 @@ class NetworkThrottle extends React.Component {
 							<p className="key">DOWNLINK (kbps)</p>
 
 							<input
-								className="value"
+								className="text-value"
 								type="text"
 								placeholder="NO LIMIT"
 								disabled={disabled}
 								pattern="[0-9]*"
-								value={downlink}
+								value={down}
 								autoCorrect="false"
 								spellCheck="false"
-								onChange={event =>
-									this.setState({ downlink: event.target.value })
-								}
+								onChange={event => this.setState({ down: event.target.value })}
 							/>
 						</div>
 
@@ -76,7 +73,7 @@ class NetworkThrottle extends React.Component {
 							<p className="key">RTT (ms)</p>
 
 							<input
-								className="value"
+								className="text-value"
 								type="text"
 								placeholder="NOT SET"
 								disabled={disabled}
@@ -92,7 +89,7 @@ class NetworkThrottle extends React.Component {
 							<p className="key">PACKETLOSS (%)</p>
 
 							<input
-								className="value"
+								className="text-value"
 								type="text"
 								placeholder="NOT SET"
 								disabled={disabled}
@@ -103,6 +100,20 @@ class NetworkThrottle extends React.Component {
 								onChange={event =>
 									this.setState({ packetLoss: event.target.value })
 								}
+							/>
+						</div>
+
+						<div className="row">
+							<p className="key">LOCALHOST</p>
+
+							<input
+								className="checkbox-value"
+								type="checkbox"
+								disabled={disabled}
+								checked={localhost}
+								onChange={() => {
+									this.setState({ localhost: !localhost });
+								}}
 							/>
 						</div>
 					</div>
@@ -117,17 +128,7 @@ class NetworkThrottle extends React.Component {
 							RESET
 						</button>
 
-						<button
-							type="submit"
-							className="apply"
-							disabled={
-								disabled ||
-								(!uplink.trim() &&
-									!downlink.trim() &&
-									!rtt.trim() &&
-									!packetLoss.trim())
-							}
-						>
+						<button type="submit" className="apply" disabled={disabled}>
 							APPLY
 						</button>
 					</div>
@@ -139,15 +140,16 @@ class NetworkThrottle extends React.Component {
 	componentWillUnmount() {
 		const { roomClient } = this.props;
 
-		roomClient.resetNetworkThrottle({ silent: true });
+		roomClient.stopNetworkThrottle({ silent: true });
 	}
 
 	async _apply() {
 		const { roomClient, secret } = this.props;
-		let { uplink, downlink, rtt, packetLoss } = this.state;
+		const { localhost } = this.state;
+		let { up, down, rtt, packetLoss } = this.state;
 
-		uplink = Number(uplink) || 0;
-		downlink = Number(downlink) || 0;
+		up = Number(up) || 0;
+		down = Number(down) || 0;
 		rtt = Number(rtt) || 0;
 		packetLoss = Number(packetLoss) || 0;
 
@@ -155,14 +157,15 @@ class NetworkThrottle extends React.Component {
 
 		await roomClient.applyNetworkThrottle({
 			secret,
-			uplink,
-			downlink,
+			up,
+			down,
 			rtt,
 			packetLoss,
+			localhost,
 		});
 
 		window.onunload = () => {
-			roomClient.resetNetworkThrottle({ silent: true, secret });
+			roomClient.stopNetworkThrottle({ silent: true, secret });
 		};
 
 		this.setState({ disabled: false });
@@ -172,16 +175,17 @@ class NetworkThrottle extends React.Component {
 		const { roomClient, secret } = this.props;
 
 		this.setState({
-			uplink: '',
-			downlink: '',
+			up: '',
+			down: '',
 			rtt: '',
 			packetLoss: '',
+			localhost: false,
 			disabled: false,
 		});
 
 		this.setState({ disabled: true });
 
-		await roomClient.resetNetworkThrottle({ secret });
+		await roomClient.stopNetworkThrottle({ secret });
 
 		this.setState({ disabled: false });
 	}

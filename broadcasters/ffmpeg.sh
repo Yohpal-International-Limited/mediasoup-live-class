@@ -62,7 +62,7 @@ fi
 
 set -e
 
-BROADCASTER_ID=$(LC_CTYPE=C tr -dc A-Za-z0-9 < /dev/urandom | fold -w ${1:-32} | head -n 1)
+PEER_ID=$(LC_CTYPE=C tr -dc A-Za-z0-9 < /dev/urandom | fold -w ${1:-32} | head -n 1)
 HTTPIE_COMMAND="http --check-status"
 AUDIO_SSRC=1111
 AUDIO_PT=100
@@ -79,36 +79,35 @@ ${HTTPIE_COMMAND} \
 	GET ${SERVER_URL}/rooms/${ROOM_ID} > /dev/null
 
 #
-# Create a Broadcaster entity in the server by sending a POST with our metadata.
-# Note that this is not related to mediasoup at all, but will become just a JS
-# object in the Node.js application to hold our metadata and mediasoup Transports
-# and Producers.
+# Create a BroadcasterPeer entity in the server by sending a POST with our
+# metadata. Note that this is not related to mediasoup at all, but will become
+# just a JS object in the Node.js application to hold our metadata and mediasoup
+# Transports and Producers.
 #
-echo ">>> creating Broadcaster..."
+echo ">>> creating BroadcasterPeer..."
 
 ${HTTPIE_COMMAND} \
 	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters \
-	id="${BROADCASTER_ID}" \
-	displayName="Broadcaster" \
-	device:='{"name": "FFmpeg"}' \
+	peerId="${PEER_ID}" \
+	displayName="FFmpeg" \
+	device:='{"name": "FFmpeg", "flag": "ffmpeg"}' \
 	> /dev/null
 
 #
-# Upon script termination delete the Broadcaster in the server by sending a
+# Upon script termination delete the BroadcasterPeer in the server by sending a
 # HTTP DELETE.
 #
-trap 'echo ">>> script exited with status code $?"; ${HTTPIE_COMMAND} DELETE ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${BROADCASTER_ID} > /dev/null' EXIT
+trap 'echo ">>> script exited with status code $?"; ${HTTPIE_COMMAND} DELETE ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID} > /dev/null' EXIT
 
 #
 # Create a PlainTransport in the mediasoup to send our audio using plain RTP
-# over UDP. Do it via HTTP post specifying type:"plain" and comedia:true and
-# rtcpMux:false.
+# over UDP. Do it via HTTP post specifying comedia:true and rtcpMux:false.
 #
 echo ">>> creating mediasoup PlainTransport for producing audio..."
 
 res=$(${HTTPIE_COMMAND} \
-	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${BROADCASTER_ID}/transports \
-	type="plain" \
+	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID}/transports \
+	direction="producer" \
 	comedia:=true \
 	rtcpMux:=false \
 	2> /dev/null)
@@ -117,7 +116,7 @@ res=$(${HTTPIE_COMMAND} \
 # Parse JSON response into Shell variables and extract the PlainTransport id,
 # IP, port and RTCP port.
 #
-eval "$(echo ${res} | jq -r '@sh "audioTransportId=\(.id) audioTransportIp=\(.ip) audioTransportPort=\(.port) audioTransportRtcpPort=\(.rtcpPort)"')"
+eval "$(echo ${res} | jq -r '@sh "audioTransportId=\(.transportId) audioTransportIp=\(.ip) audioTransportPort=\(.port) audioTransportRtcpPort=\(.rtcpPort)"')"
 
 #
 # Create a PlainTransport in the mediasoup to send our video using plain RTP
@@ -127,8 +126,8 @@ eval "$(echo ${res} | jq -r '@sh "audioTransportId=\(.id) audioTransportIp=\(.ip
 echo ">>> creating mediasoup PlainTransport for producing video..."
 
 res=$(${HTTPIE_COMMAND} \
-	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${BROADCASTER_ID}/transports \
-	type="plain" \
+	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID}/transports \
+	direction="producer" \
 	comedia:=true \
 	rtcpMux:=false \
 	2> /dev/null)
@@ -137,7 +136,16 @@ res=$(${HTTPIE_COMMAND} \
 # Parse JSON response into Shell variables and extract the PlainTransport id,
 # IP, port and RTCP port.
 #
-eval "$(echo ${res} | jq -r '@sh "videoTransportId=\(.id) videoTransportIp=\(.ip) videoTransportPort=\(.port) videoTransportRtcpPort=\(.rtcpPort)"')"
+eval "$(echo ${res} | jq -r '@sh "videoTransportId=\(.transportId) videoTransportIp=\(.ip) videoTransportPort=\(.port) videoTransportRtcpPort=\(.rtcpPort)"')"
+
+#
+# Once transports are created, join the room.
+#
+echo ">>> joining the room..."
+
+${HTTPIE_COMMAND} -v \
+	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID}/join \
+	> /dev/null
 
 #
 # Create a mediasoup Producer to send audio by sending our RTP parameters via a
@@ -146,9 +154,10 @@ eval "$(echo ${res} | jq -r '@sh "videoTransportId=\(.id) videoTransportIp=\(.ip
 echo ">>> creating mediasoup audio Producer..."
 
 ${HTTPIE_COMMAND} -v \
-	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${BROADCASTER_ID}/transports/${audioTransportId}/producers \
+	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID}/transports/${audioTransportId}/producers \
 	kind="audio" \
 	rtpParameters:="{ \"codecs\": [{ \"mimeType\":\"audio/opus\", \"payloadType\":${AUDIO_PT}, \"clockRate\":48000, \"channels\":2, \"parameters\":{ \"sprop-stereo\":1 } }], \"encodings\": [{ \"ssrc\":${AUDIO_SSRC} }] }" \
+	appData:="{ \"source\": \"audio\" }" \
 	> /dev/null
 
 #
@@ -158,9 +167,10 @@ ${HTTPIE_COMMAND} -v \
 echo ">>> creating mediasoup video Producer..."
 
 ${HTTPIE_COMMAND} -v \
-	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${BROADCASTER_ID}/transports/${videoTransportId}/producers \
+	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID}/transports/${videoTransportId}/producers \
 	kind="video" \
-	rtpParameters:="{ \"codecs\": [{ \"mimeType\":\"video/vp8\", \"payloadType\":${VIDEO_PT}, \"clockRate\":90000 }], \"encodings\": [{ \"ssrc\":${VIDEO_SSRC} }] }" \
+	rtpParameters:="{ \"codecs\": [{ \"mimeType\":\"video/vp8\", \"payloadType\":${VIDEO_PT}, \"clockRate\":90000, \"rtcpFeedback\": [{ \"type\":\"nack\" }, { \"type\":\"nack\", \"parameter\":\"pli\" }, { \"type\":\"ccm\", \"parameter\":\"fir\" }] }], \"encodings\": [{ \"ssrc\":${VIDEO_SSRC} }] }" \
+	appData:="{ \"source\": \"video\" }" \
 	> /dev/null
 
 #

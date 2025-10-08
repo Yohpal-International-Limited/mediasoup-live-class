@@ -1,33 +1,71 @@
 {
-  "name": "mediasoup-demo-server",
-  "version": "3.0.0",
-  "private": true,
-  "description": "mediasoup demo server",
-  "author": "Iñaki Baz Castillo <ibc@aliax.net>",
-  "license": "All Rights Reserved",
-  "main": "server.js",
-  "scripts": {
-    "generate-dev-certificate": "mkcert -install --key-file certs/server.key --cert-file certs/server.crt mediasoup-demo.dev \"*.mediasoup-demo.dev\" localhost 127.0.0.1 ::1",
-    "lint": "eslint -c .eslintrc.js server.js lib connect.js",
-    "start": "DEBUG=${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=${INTERACTIVE:='true'} node server.js",
-    "connect": "node connect.js"
-  },
-  "dependencies": {
-    "@sitespeed.io/throttle": "^5.0.1",
-    "awaitqueue": "^3.2.2",
-    "body-parser": "^1.19.0",
-    "colors": "^1.4.0",
-    "debug": "^4.4.1",
-    "express": "^4.17.1",
-    "mediasoup": "github:versatica/mediasoup#v3",
-    "pidusage": "^2.0.21",
-    "protoo-server": "^4.0.5",
-    "rtp.js": "^0.11.4"
-  },
-  "devDependencies": {
-    "eslint": "^6.8.0",
-    "gulp": "^4.0.2",
-    "gulp-eslint": "^6.0.0",
-    "gulp-plumber": "^1.2.1"
-  }
+	"name": "mediasoup-demo-server",
+	"version": "3.1.0",
+	"description": "mediasoup-demo server",
+	"author": "Iñaki Baz Castillo <ibc@aliax.net>",
+	"license": "ISC",
+	"homepage": "https://mediasoup.org",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/versatica/mediasoup-demo.git"
+	},
+	"funding": {
+		"type": "opencollective",
+		"url": "https://opencollective.com/mediasoup"
+	},
+	"main": "lib/index.js",
+	"types": "lib/index.d.ts",
+	"bin": {
+		"mediasoup-demo-server": "lib/index.js"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"keywords": [
+		"mediasoup",
+		"webrtc",
+		"sfu",
+		"nodejs"
+	],
+	"scripts": {
+		"prepare": "node npm-scripts.mjs prepare",
+		"typescript:build": "node npm-scripts.mjs typescript:build",
+		"typescript:watch": "node npm-scripts.mjs typescript:watch",
+		"lint": "node npm-scripts.mjs lint",
+		"format": "node npm-scripts.mjs format",
+		"release:check": "node npm-scripts.mjs release:check",
+		"release": "node npm-scripts.mjs release",
+		"start": "cross-env NODE_ENV=production ./lib/index.js",
+		"watch": "node npm-scripts.mjs watch"
+	},
+	"dependencies": {
+		"@sitespeed.io/throttle": "^5.0.1",
+		"awaitqueue": "^3.3.0",
+		"body-parser": "^2.2.0",
+		"debug": "^4.4.3",
+		"express": "^5.1.0",
+		"mediasoup": "^3.19.3",
+		"picocolors": "^1.1.1",
+		"pidusage": "^4.0.1",
+		"protoo-server": "^4.0.7",
+		"supports-color": "^10.2.2"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.37.0",
+		"@types/debug": "^4.1.12",
+		"@types/express": "^5.0.3",
+		"@types/node": "^24.7.0",
+		"@types/pidusage": "^2.0.5",
+		"@types/protoo-server": "^4.0.6",
+		"cross-env": "^10.1.0",
+		"eslint": "^9.37.0",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-prettier": "^5.5.4",
+		"globals": "^16.4.0",
+		"nodemon": "^3.1.10",
+		"prettier": "^3.6.2",
+		"tsx": "^4.20.6",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.46.0"
+	}
 }
