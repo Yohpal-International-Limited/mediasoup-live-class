@@ -5,13 +5,18 @@ import * as bodyParser from 'body-parser';
 import { Logger } from './Logger';
 import { EnhancedEventEmitter } from './enhancedEvents';
 import { Room } from './Room';
-import { ServerError } from './errors';
+import { ServerError, ForbiddenError } from './errors';
 import type { RoomId } from './types';
 
 const logger = new Logger('ApiServer');
 
+export type ApiServerCreateOptions = {
+	httpOriginHeader: string;
+};
+
 type ApiServerConstructorOptions = {
 	expressApp: expressTypes.Express;
+	httpOriginHeader: string;
 };
 
 export type ApiServerEvents = {
@@ -31,12 +36,13 @@ interface ApiServerExpressRequest extends expressTypes.Request {
 
 export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 	readonly #expressApp: expressTypes.Express;
+	readonly #httpOriginHeader: string;
 
-	static create(): ApiServer {
+	static create({ httpOriginHeader }: ApiServerCreateOptions): ApiServer {
 		logger.debug('create()');
 
 		const expressApp = ApiServer.createExpressApp();
-		const apiServer = new ApiServer({ expressApp });
+		const apiServer = new ApiServer({ expressApp, httpOriginHeader });
 
 		return apiServer;
 	}
@@ -49,12 +55,16 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		return expressApp;
 	}
 
-	private constructor({ expressApp }: ApiServerConstructorOptions) {
+	private constructor({
+		expressApp,
+		httpOriginHeader,
+	}: ApiServerConstructorOptions) {
 		super();
 
 		logger.debug('constructor()');
 
 		this.#expressApp = expressApp;
+		this.#httpOriginHeader = httpOriginHeader;
 
 		this.handleExpressApp();
 	}
@@ -65,6 +75,20 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 
 	private handleExpressApp(): void {
 		this.#expressApp.set('trust proxy', true);
+
+		/**
+		 * Middleware to validate Origin and so on. Yes, we require Origin in ALL
+		 * HTTP API requestss. Period.
+		 */
+		this.#expressApp.use((req: ApiServerExpressRequest, res, next) => {
+			if (req.headers.origin !== this.#httpOriginHeader) {
+				next(new ForbiddenError('GOOD TRY!!!'));
+
+				return;
+			}
+
+			next();
+		});
 
 		this.#expressApp.use(bodyParser.json());
 

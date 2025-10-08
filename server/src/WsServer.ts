@@ -7,16 +7,19 @@ import type * as protooTypes from 'protoo-server';
 import { Logger } from './Logger';
 import { EnhancedEventEmitter } from './enhancedEvents';
 import { Room } from './Room';
-import { type RoomId } from './types';
+import * as utils from './utils';
+import type { RoomId } from './types';
 
 const logger = new Logger('WsServer');
 
 export type WsServerCreateOptions = {
 	httpServer: https.Server | http.Server;
+	httpOriginHeader: string;
 };
 
 type WsServerConstructorOptions = {
 	protooServer: protooTypes.WebSocketServer;
+	httpOriginHeader: string;
 };
 
 export type WsServerEvents = {
@@ -32,8 +35,12 @@ export type WsServerEvents = {
 
 export class WsServer extends EnhancedEventEmitter<WsServerEvents> {
 	readonly #protooServer: protooTypes.WebSocketServer;
+	readonly #httpOriginHeader: string;
 
-	static create({ httpServer }: WsServerCreateOptions): WsServer {
+	static create({
+		httpServer,
+		httpOriginHeader,
+	}: WsServerCreateOptions): WsServer {
 		logger.debug('create()');
 
 		const protooServer = new protoo.WebSocketServer(httpServer, {
@@ -42,17 +49,21 @@ export class WsServer extends EnhancedEventEmitter<WsServerEvents> {
 			fragmentOutgoingMessages: true,
 			fragmentationThreshold: 960000,
 		});
-		const wsServer = new WsServer({ protooServer });
+		const wsServer = new WsServer({ protooServer, httpOriginHeader });
 
 		return wsServer;
 	}
 
-	private constructor({ protooServer }: WsServerConstructorOptions) {
+	private constructor({
+		protooServer,
+		httpOriginHeader,
+	}: WsServerConstructorOptions) {
 		super();
 
 		logger.debug('constructor()');
 
 		this.#protooServer = protooServer;
+		this.#httpOriginHeader = httpOriginHeader;
 
 		this.handleProtooServer();
 	}
@@ -60,6 +71,18 @@ export class WsServer extends EnhancedEventEmitter<WsServerEvents> {
 	private handleProtooServer(): void {
 		// eslint-disable-next-line @typescript-eslint/no-misused-promises
 		this.#protooServer.on('connectionrequest', async (info, accept, reject) => {
+			// Validate HTTP Origin header.
+			if (
+				!utils.areSameHttpOrigins(
+					info.request.headers.origin,
+					this.#httpOriginHeader
+				)
+			) {
+				reject(403, 'GO TO HELL 🖕🏼');
+
+				return;
+			}
+
 			if (!info.request.url || !info.request.headers.host) {
 				reject(400, `Missing URL or Host header in the request`);
 

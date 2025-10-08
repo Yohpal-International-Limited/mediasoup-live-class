@@ -17,3 +17,25 @@ export function clone<T>(value: T): T {
 export function assertUnreachable(key: string, value: never): never {
 	throw new TypeError(`invalid ${key}: ${value}`);
 }
+
+/**
+ * Whether two URLs have same HTTP scheme and hostname. Port is ignored.
+ */
+export function areSameHttpOrigins(urlA?: string, urlB?: string): boolean {
+	if (!urlA || !urlB) {
+		return false;
+	}
+
+	try {
+		const a = new URL(urlA);
+		const b = new URL(urlB);
+
+		return (
+			(a.protocol === 'http:' || a.protocol === 'https:') &&
+			a.protocol === b.protocol &&
+			a.hostname === b.hostname
+		);
+	} catch {
+		return false;
+	}
+}

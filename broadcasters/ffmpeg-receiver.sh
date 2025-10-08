@@ -116,7 +116,9 @@ EOF
 echo ">>> verifying that room '${ROOM_ID}' exists..."
 
 ${HTTPIE_COMMAND} \
-	GET ${SERVER_URL}/rooms/${ROOM_ID} > /dev/null
+	GET ${SERVER_URL}/rooms/${ROOM_ID} \
+	Origin:${SERVER_URL} \
+	> /dev/null
 
 #
 # Create a BroadcasterPeer entity in the server by sending a POST with our
@@ -128,6 +130,7 @@ echo ">>> creating BroadcasterPeer..."
 
 ${HTTPIE_COMMAND} \
 	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters \
+	Origin:${SERVER_URL} \
 	peerId="${PEER_ID}" \
 	displayName="FFmpeg" \
 	device:='{"name": "FFmpeg", "flag": "ffmpeg"}' \
@@ -137,12 +140,13 @@ ${HTTPIE_COMMAND} \
 # Upon script termination delete the BroadcasterPeer in the server by sending a
 # HTTP DELETE.
 #
-trap 'echo ">>> script exited with status code $?"; ${HTTPIE_COMMAND} DELETE ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID} > /dev/null' EXIT
+trap 'echo ">>> script exited with status code $?"; ${HTTPIE_COMMAND} DELETE ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID} Origin:${SERVER_URL} > /dev/null' EXIT
 
 echo ">>> creating mediasoup PlainTransport for consuming audio..."
 
 res=$(${HTTPIE_COMMAND} \
 	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID}/transports \
+	Origin:${SERVER_URL} \
 	direction="consumer" \
 	comedia:=false \
 	rtcpMux:=false \
@@ -154,6 +158,7 @@ echo ">>> connecting mediasoup PlainTransport for consuming audio..."
 
 ${HTTPIE_COMMAND} -v \
 	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID}/transports/${audioTransportId}/connect \
+	Origin:${SERVER_URL} \
 	ip="${LOCAL_IP}" \
 	port:=${AUDIO_LOCAL_PORT} \
 	rtcpPort:=${AUDIO_LOCAL_RTCP_PORT} \
@@ -166,12 +171,14 @@ echo ">>> joining the room..."
 
 ${HTTPIE_COMMAND} -v \
 	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID}/join \
+	Origin:${SERVER_URL} \
 	> /dev/null
 
 echo ">>> creating mediasoup audio Consumer..."
 
 ${HTTPIE_COMMAND} \
 	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID}/transports/${audioTransportId}/consume \
+	Origin:${SERVER_URL} \
 	producerId="${AUDIO_PRODUCER_ID}" \
 	paused:=false \
 	rtpCapabilities:="{ \"codecs\": [{ \"kind\": \"audio\", \"mimeType\":\"audio/opus\", \"preferredPayloadType\":${AUDIO_CONSUMER_PT}, \"clockRate\": 48000, \"channels\": 2, \"parameters\": { \"useinbandfec\": 1 } }] }" \
@@ -181,6 +188,7 @@ echo ">>> creating mediasoup PlainTransport for consuming video..."
 
 res=$(${HTTPIE_COMMAND} \
 	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID}/transports \
+	Origin:${SERVER_URL} \
 	direction="consumer" \
 	comedia:=false \
 	rtcpMux:=false \
@@ -192,6 +200,7 @@ echo ">>> connecting mediasoup PlainTransport for consuming video..."
 
 ${HTTPIE_COMMAND} -v \
 	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID}/transports/${videoTransportId}/connect \
+	Origin:${SERVER_URL} \
 	ip="${LOCAL_IP}" \
 	port:=${VIDEO_LOCAL_PORT} \
 	rtcpPort:=${VIDEO_LOCAL_RTCP_PORT} \
@@ -203,6 +212,7 @@ echo ">>> creating mediasoup video Consumer..."
 
 res=$(${HTTPIE_COMMAND} \
 	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${PEER_ID}/transports/${videoTransportId}/consume \
+	Origin:${SERVER_URL} \
 	producerId="${VIDEO_PRODUCER_ID}" \
 	paused:=true \
 	rtpCapabilities:="{ \"codecs\": [{ \"kind\": \"video\", \"mimeType\":\"video/VP8\", \"preferredPayloadType\":${VIDEO_CONSUMER_PT}, \"clockRate\": 90000, \"parameters\": {}, \"rtcpFeedback\": [{ \"type\": \"nack\" }] }] }" \

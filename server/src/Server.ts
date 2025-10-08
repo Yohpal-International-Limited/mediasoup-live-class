@@ -90,11 +90,12 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 	}: ServerCreateOptions): Promise<Server> {
 		logger.debug('create()');
 
+		const httpOriginHeader = Server.computeHttpOriginHeader(config);
 		const mediasoupWorkersAndWebRtcServers =
 			await Server.createMediasoupWorkersAndWebRtcServers(config);
 		const httpServer = await Server.createHttpServer(config);
-		const wsServer = WsServer.create({ httpServer });
-		const apiServer = ApiServer.create();
+		const wsServer = WsServer.create({ httpServer, httpOriginHeader });
+		const apiServer = ApiServer.create({ httpOriginHeader });
 		const server = new Server({
 			config,
 			mediasoupWorkersAndWebRtcServers,
@@ -107,6 +108,20 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 		Server.observer.emit('new-server', server);
 
 		return server;
+	}
+
+	private static computeHttpOriginHeader(config: Config): string {
+		const schema = config.http.tls ? 'https' : 'http';
+		const domain = config.domain;
+		const port = config.http.listenPort;
+		const httpOriginHeader = `${schema}://${domain}:${port}`;
+
+		logger.info(
+			'computeHttpOriginHeader() | computed HTTP Origin header: %o',
+			httpOriginHeader
+		);
+
+		return httpOriginHeader;
 	}
 
 	private static async createMediasoupWorkersAndWebRtcServers(

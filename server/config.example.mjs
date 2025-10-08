@@ -15,7 +15,8 @@ import * as os from 'node:os';
  */
 export const config = {
 	/**
-	 * Listening hostname for browser app Vite development server.
+	 * Server domain. WebSocket and HTTP API connections with an Origin header
+	 * not matching this domain will be rejected.
 	 */
 	domain: 'localhost',
 	/**
