@@ -16,7 +16,7 @@ import { ApiServer } from './ApiServer';
 import { Room } from './Room';
 import { InvalidStateError, ForbiddenError, RoomNotFound } from './errors';
 import { clone } from './utils';
-import type { Config, RoomId, WorkerAppData } from './types';
+import type { Config, RoomId, SerializedServer, WorkerAppData } from './types';
 
 const logger = new Logger('Server');
 
@@ -82,6 +82,7 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 	#networkThrottleEnabled: boolean = false;
 	#networkThrottleEnabledByRoomId?: RoomId;
 	readonly #networkThrottleAwaitQueue: AwaitQueue = new AwaitQueue();
+	readonly #createdAt: Date;
 	#closed: boolean = false;
 
 	static async create({
@@ -237,6 +238,7 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 		this.#wsServer = wsServer;
 		this.#apiServer = apiServer;
 		this.#networkThrottleSecret = networkThrottleSecret;
+		this.#createdAt = new Date();
 
 		// We need to verify that all mediasoup Workers are alive at this point
 		// (just in case they died for whatever reason before reaching this
@@ -295,6 +297,16 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 		// NOTE: We don't stop this.#networkThrottleAwaitQueue on purpose.
 
 		this.emit('closed');
+	}
+
+	serialize(): SerializedServer {
+		return {
+			createdAt: this.#createdAt,
+			numMediasoupWorkers: this.#mediasoupWorkersAndWebRtcServers.size,
+			networkThrottleEnabled: this.#networkThrottleEnabled,
+			numRooms: this.#rooms.size,
+			rooms: Array.from(this.#rooms.values()).map(room => room.serialize()),
+		};
 	}
 
 	isNetworkThrottleEnabled(): boolean {

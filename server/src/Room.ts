@@ -168,6 +168,7 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 		this.#createdAt = new Date();
 
 		this.handleMediasoupRouter();
+		this.handleMediasoupWebRtcServer();
 		this.handleMediasoupAudioLevelObserver();
 		this.handleMediasoupActiveSpeakerObserver();
 	}
@@ -655,6 +656,10 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 	}
 
 	private handleMediasoupRouter(): void {
+		this.#mediasoupRouter.observer.on('close', () => {
+			this.close();
+		});
+
 		this.#mediasoupRouter.observer.on('newtransport', transport => {
 			transport.observer.on('newproducer', producer => {
 				this.#observedProducers.set(
@@ -666,6 +671,12 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 					this.#observedProducers.delete(producer.id);
 				});
 			});
+		});
+	}
+
+	private handleMediasoupWebRtcServer(): void {
+		this.#mediasoupWebRtcServer.observer.on('close', () => {
+			this.close();
 		});
 	}
 

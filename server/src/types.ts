@@ -63,6 +63,14 @@ export type PeerDevice = {
 	version?: string;
 };
 
+export type SerializedServer = {
+	createdAt: Date;
+	numMediasoupWorkers: number;
+	networkThrottleEnabled: boolean;
+	numRooms: number;
+	rooms: SerializedRoom[];
+};
+
 export type SerializedRoom = {
 	roomId: RoomId;
 	createdAt: Date;

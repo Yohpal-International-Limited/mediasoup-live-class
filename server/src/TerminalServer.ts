@@ -55,7 +55,6 @@ export type TerminalServerEvents = {
 export class TerminalServer extends EnhancedEventEmitter<TerminalServerEvents> {
 	static #netServer?: net.Server;
 	static #terminalServers: Set<TerminalServer> = new Set();
-	// Maps to store all mediasoup entities indexed by id.
 	static readonly #workers: Map<number, mediasoupTypes.Worker> = new Map();
 	static readonly #webRtcServers: Map<string, mediasoupTypes.WebRtcServer> =
 		new Map();
@@ -68,7 +67,7 @@ export class TerminalServer extends EnhancedEventEmitter<TerminalServerEvents> {
 		new Map();
 	static readonly #dataConsumers: Map<string, mediasoupTypes.DataConsumer> =
 		new Map();
-	// Maps to store all Rooms indexed by id.
+	static #server?: Server;
 	static readonly #rooms: Map<RoomId, Room> = new Map();
 
 	readonly #socket: netTypes.Socket;
@@ -254,6 +253,12 @@ export class TerminalServer extends EnhancedEventEmitter<TerminalServerEvents> {
 
 	private static runServerObserver(): void {
 		Server.observer.on('new-server', server => {
+			TerminalServer.#server = server;
+
+			server.on('closed', () => {
+				TerminalServer.#server = undefined;
+			});
+
 			server.on('new-room', room => {
 				TerminalServer.#rooms.set(room.id, room);
 				room.on('closed', () => {
@@ -334,7 +339,7 @@ export class TerminalServer extends EnhancedEventEmitter<TerminalServerEvents> {
 					case 'help': {
 						this.logInfoWithoutPrefix('available commands:');
 						this.logInfoWithoutPrefix('- h, help: show this message');
-						this.logInfoWithoutPrefix('- d, dump: show active Rooms');
+						this.logInfoWithoutPrefix('- d, dump: show Server status');
 						this.logInfoWithoutPrefix(
 							'- usage: show CPU and memory usage of the Node.js and mediasoup-worker processes'
 						);
@@ -396,13 +401,11 @@ export class TerminalServer extends EnhancedEventEmitter<TerminalServerEvents> {
 
 					case 'd':
 					case 'dump': {
-						for (const room of TerminalServer.#rooms.values()) {
-							const dump = room.serialize();
+						const dump = TerminalServer.#server?.serialize();
 
-							this.logInfoWithoutPrefix(
-								`room.dump():\n${JSON.stringify(dump, null, '  ')}`
-							);
-						}
+						this.logInfoWithoutPrefix(
+							`server.serialize():\n${JSON.stringify(dump, null, '  ')}`
+						);
 
 						break;
 					}
