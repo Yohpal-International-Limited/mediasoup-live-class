@@ -11,7 +11,8 @@
 # renamed to `public`.
 /public
 
-# Local stuff.
+# Locally generated stuff.
+/*.tgz
 /.vscode
 /.zed
 /mediasoup_valgrind_*

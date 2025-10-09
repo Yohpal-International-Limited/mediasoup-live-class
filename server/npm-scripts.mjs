@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import * as process from 'node:process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -39,6 +37,7 @@ const PRETTIER_PATHS = [
 	'config.example.mjs',
 	fs.existsSync('config.mjs') ? 'config.mjs' : undefined,
 	'src',
+	'bin',
 ]
 	.filter(Boolean)
 	.join(' ');
@@ -242,7 +241,7 @@ function watch() {
 	logInfo('watch()');
 
 	executeInteractiveCmd(
-		`cross-env NODE_ENV=debug nodemon ${NODEMON_WATCH_PATHS} -e ts,mjs,json --exec tsx src/index.ts`
+		`nodemon ${NODEMON_WATCH_PATHS} -e ts,mjs,json --exec tsx src/index.ts`
 	);
 }
 

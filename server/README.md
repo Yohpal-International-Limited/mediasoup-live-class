@@ -57,7 +57,7 @@ DEBUG="mediasoup-demo-server* mediasoup:WARN* mediasoup:ERROR*"
 
 ### `TERMINAL`
 
-If set to "true", an internative terminal client is opened in the same terminal session where **mediasoup-demo-server** has been launched.
+If set to "true", an interactive terminal client is opened in the same terminal session where **mediasoup-demo-server** has been launched.
 
 Additionally you can open an interactive terminal client from any other terminal session. See the _"Connecting a terminal to a running server"_ section below.
 
@@ -68,7 +68,7 @@ Some shell scripts are provided for convenience:
 - The `start.sh` script:
   - It detects the host IP and sets the `MEDIASOUP_LISTEN_IP` environment variable, useful if your `config.mjs` reads it.
   - It sets the `DEBUG` environment variable to activate **mediasoup** and **mediasoup-demo-server** logs.
-  - It sets the `TERMINAL` environment variable to "true" if it was called with `--terminal` command line argument. This runs the server with an internative terminal client.
+  - It sets the `TERMINAL` environment variable to "true" if it was called with `--terminal` command line argument. This runs the server with an interactive terminal client.
   - Then it invokes `npm run watch` if `--watch` command line argument is given, or `npm start` otherwise.
 - `watch.sh` script is a shortcut of `start.sh --watch`, useful for development in case you are modifying TypeScript source code.
 - Notice that `start.sh` cannot be called with both `--terminal` and `--watch` command line arguments. Also notice that `watch.sh` cannot be called with `--terminal` command line argument. This is because, when in watch mode, **mediasoup-demo-server** is managed by [nodemon](https://nodemon.io/), which interferes with stdin, making it impossible to launch a terminal in the same process.
@@ -77,9 +77,13 @@ Alternatively, you can directly invoke `npm start` or `npm run watch` (see detai
 
 ## Connecting an interactive terminal to a running server
 
-The `src/connect-terminal.mjs` scripts connects to the running **mediasoup-demo-server** process and provides you with an interactive terminal to interact with it.
+Enter the `mediasoup-demo/server` folder and run:
 
-You need to enter the `mediasoup-demo/server` folder to run it.
+```sh
+npm run connect-terminal
+```
+
+It will connect to the running **mediasoup-demo-server** process and provide you with an interactive terminal to interact with it. It requires that the TypeScript code is already transpiled to JavaScript.
 
 ```sh
 cd /PATH_TO/mediasoup-demo/server
@@ -91,6 +95,13 @@ cd /PATH_TO/mediasoup-demo/server
 [TerminalServer] opening Readline Command Console...
 [TerminalServer] type help to print available commands
 ```
+
+## Binaries
+
+If you enter the `server` folder and run `npm link`, it will generate two executables available from everywhere:
+
+- `mediasoup-demo-server`: It stats the server. In fact, `npm start` invokes this binary behind the curtains.
+- `mediasoup-demo-server-connect-terminal`: It connects to the interactive terminal of the running **mediasoup-demo-server** process. In fact, `npm run connect-terminal` invokes this binary behind the curtains.
 
 ## Development
 
@@ -113,6 +124,10 @@ It runs the server in "production" mode. It requires that the TypeScript code is
 It runs the server in "development" (AKA "watch" mode) mode with [nodemon](https://nodemon.io/) and transpiles TypeScript to JavaScript automatically when changes are made (so the server is restarted).
 
 It cannot be used with the `TERMINAL` environment variable set to "true" as explained above (doing it will literally crash the server).
+
+### `npm run connect-terminal`
+
+See the _"Connecting an interactive terminal to a running server"_ section above.
 
 ## Authors
 

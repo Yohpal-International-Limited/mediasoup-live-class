@@ -16,7 +16,8 @@
 	"main": "lib/index.js",
 	"types": "lib/index.d.ts",
 	"bin": {
-		"mediasoup-demo-server": "lib/index.js"
+		"mediasoup-demo-server": "bin/mediasoup-demo-server",
+		"mediasoup-demo-server-connect-terminal": "bin/mediasoup-demo-server-connect-terminal"
 	},
 	"engines": {
 		"node": ">=22"
@@ -35,8 +36,9 @@
 		"format": "node npm-scripts.mjs format",
 		"release:check": "node npm-scripts.mjs release:check",
 		"release": "node npm-scripts.mjs release",
-		"start": "cross-env NODE_ENV=production ./lib/index.js",
-		"watch": "node npm-scripts.mjs watch"
+		"start": "npx mediasoup-demo-server",
+		"watch": "node npm-scripts.mjs watch",
+		"connect-terminal": "npx mediasoup-demo-server-connect-terminal"
 	},
 	"dependencies": {
 		"@sitespeed.io/throttle": "^5.0.1",
@@ -57,7 +59,6 @@
 		"@types/node": "^24.7.0",
 		"@types/pidusage": "^2.0.5",
 		"@types/protoo-server": "^4.0.6",
-		"cross-env": "^10.1.0",
 		"eslint": "^9.37.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-prettier": "^5.5.4",
