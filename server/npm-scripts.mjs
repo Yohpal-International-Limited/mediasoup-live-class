@@ -1,6 +1,5 @@
 import * as process from 'node:process';
 import * as fs from 'node:fs';
-import * as path from 'node:path';
 import { execSync } from 'node:child_process';
 import pkg from './package.json' with { type: 'json' };
 
@@ -150,15 +149,6 @@ function buildTypescript({ force }) {
 
 	// Generate .js CommonJS code and .d.ts TypeScript declaration files in lib/.
 	executeCmd(`tsc ${taskArgs}`);
-
-	// Give execution permission to lib/index.js.
-	if (process.platform !== 'win32') {
-		const indexPath = path.resolve('lib', 'index.js');
-		const connectTerminalPath = path.resolve('lib', 'connect-terminal.js');
-
-		fs.chmodSync(indexPath, 0o755);
-		fs.chmodSync(connectTerminalPath, 0o755);
-	}
 }
 
 function watchTypescript() {
