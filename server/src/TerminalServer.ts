@@ -389,9 +389,9 @@ export class TerminalServer extends EnhancedEventEmitter<TerminalServerEvents> {
 							'- sdc, statsDataConsumer [id]: get stats for mediasoup DataConsumer with given id (or the latest created one)'
 						);
 						this.logInfoWithoutPrefix('- t, terminal: open Node REPL Terminal');
-						this.logInfoWithoutPrefix('- quit: quit the server');
+						this.logInfoWithoutPrefix('- quit: gracefully exit the process');
 						this.logInfoWithoutPrefix(
-							'- forceQuit: force quit the server (for development purposes)'
+							'- forceQuit: force exit the process (for development purposes)'
 						);
 
 						readStdin();

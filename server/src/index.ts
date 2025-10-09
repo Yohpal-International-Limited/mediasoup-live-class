@@ -58,7 +58,7 @@ async function start(): Promise<void> {
 			networkThrottleSecret: envs.getNetworkThrottleSecret(),
 		});
 
-		logger.info('start() | server started');
+		logger.info('start() | Server started');
 
 		handleServer();
 
@@ -69,7 +69,7 @@ async function start(): Promise<void> {
 			handleTerminalClient(terminalClient);
 		}
 	} catch (error) {
-		logger.error('start() | failed:', error);
+		logger.error('start() | failed to start Server:', error);
 
 		void exitWithError();
 	}
@@ -165,7 +165,7 @@ function handleServer(): void {
 	});
 
 	server?.on('died', () => {
-		logger.error('server died, exiting');
+		logger.error('Server died, exiting');
 
 		void exitWithError();
 	});
