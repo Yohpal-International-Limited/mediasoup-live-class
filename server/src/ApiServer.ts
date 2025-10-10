@@ -155,17 +155,15 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 			async (req: ApiServerExpressRequest, res, next) => {
 				try {
 					const { peerId, displayName, device } = req.body;
-					const responseData = await req.room!.processApiRequestToRoom(
-						'createBroadcasterPeer',
-						{
-							peerId,
-							remoteAddress: req.ip ?? req.ips[0]!,
-							displayName,
-							device,
-						}
-					);
 
-					res.status(200).json(responseData);
+					await req.room!.processApiRequestToRoom('createBroadcasterPeer', {
+						peerId,
+						remoteAddress: req.ip ?? req.ips[0]!,
+						displayName,
+						device,
+					});
+
+					res.status(200).send('BroadcasterPeer created');
 				} catch (error) {
 					next(error);
 				}
