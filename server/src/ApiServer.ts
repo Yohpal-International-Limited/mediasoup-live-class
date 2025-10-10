@@ -154,6 +154,7 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 			'/rooms/:roomId/broadcasters',
 			async (req: ApiServerExpressRequest, res, next) => {
 				try {
+					const { roomId } = req.params;
 					const { peerId, displayName, device } = req.body;
 
 					await req.room!.processApiRequestToRoom('createBroadcasterPeer', {
@@ -163,7 +164,11 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 						device,
 					});
 
-					res.status(200).send('BroadcasterPeer created');
+					res
+						.status(201)
+						.location(`/rooms/${roomId}/broadcasters/${peerId}`)
+						.set('Content-Type', 'text/plain; charset=utf-8')
+						.send('BroadcasterPeer created');
 				} catch (error) {
 					next(error);
 				}
@@ -184,7 +189,7 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 						'disconnect'
 					);
 
-					res.status(200).send('BroadcasterPeer deleted');
+					res.sendStatus(204);
 				} catch (error) {
 					next(error);
 				}
@@ -203,7 +208,10 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 				try {
 					await req.room!.processApiRequestToBroadcasterPeer(peerId!, 'join');
 
-					res.status(200).send('BroadcasterPeer joined');
+					res
+						.status(200)
+						.set('Content-Type', 'text/plain; charset=utf-8')
+						.send('BroadcasterPeer joined');
 				} catch (error) {
 					next(error);
 				}
@@ -217,7 +225,7 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		this.#expressApp.post(
 			'/rooms/:roomId/broadcasters/:peerId/transports',
 			async (req: ApiServerExpressRequest, res, next) => {
-				const { peerId } = req.params;
+				const { roomId, peerId } = req.params;
 				const { direction, comedia, rtcpMux } = req.body;
 
 				try {
@@ -234,7 +242,12 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 							}
 						);
 
-					res.status(200).send(responseData);
+					res
+						.status(201)
+						.location(
+							`/rooms/${roomId}/broadcasters/${peerId}/transports/${responseData.transportId}`
+						)
+						.send(responseData);
 				} catch (error) {
 					next(error);
 				}
@@ -263,7 +276,10 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 						}
 					);
 
-					res.status(200).send('PlainTransport connected');
+					res
+						.status(200)
+						.set('Content-Type', 'text/plain; charset=utf-8')
+						.send('PlainTransport connected');
 				} catch (error) {
 					next(error);
 				}
@@ -279,7 +295,7 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		this.#expressApp.post(
 			'/rooms/:roomId/broadcasters/:peerId/transports/:transportId/producers',
 			async (req: ApiServerExpressRequest, res, next) => {
-				const { peerId, transportId } = req.params;
+				const { roomId, peerId, transportId } = req.params;
 				const { kind, rtpParameters, appData } = req.body;
 
 				try {
@@ -295,7 +311,12 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 							}
 						);
 
-					res.status(200).json(responseData);
+					res
+						.status(201)
+						.location(
+							`/rooms/${roomId}/broadcasters/${peerId}/transports/${transportId}/producers/${responseData.producerId}`
+						)
+						.json(responseData);
 				} catch (error) {
 					next(error);
 				}
@@ -311,7 +332,7 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		this.#expressApp.post(
 			'/rooms/:roomId/broadcasters/:peerId/transports/:transportId/consume',
 			async (req: ApiServerExpressRequest, res, next) => {
-				const { peerId, transportId } = req.params;
+				const { roomId, peerId, transportId } = req.params;
 				const { producerId, paused, rtpCapabilities } = req.body;
 
 				try {
@@ -327,7 +348,12 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 							}
 						);
 
-					res.status(200).json(responseData);
+					res
+						.status(201)
+						.location(
+							`/rooms/${roomId}/broadcasters/${peerId}/transports/${transportId}/consumers/${responseData.consumerId}`
+						)
+						.json(responseData);
 				} catch (error) {
 					next(error);
 				}
@@ -354,7 +380,10 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 						}
 					);
 
-					res.status(200).send('Consumer resumed');
+					res
+						.status(200)
+						.set('Content-Type', 'text/plain; charset=utf-8')
+						.send('Consumer resumed');
 				} catch (error) {
 					next(error);
 				}
@@ -387,7 +416,10 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 					}
 
 					res.statusMessage = error.message;
-					res.status(status).send(String(error));
+					res
+						.status(status)
+						.set('Content-Type', 'text/plain; charset=utf-8')
+						.send(String(error));
 
 					if (logErrorStack) {
 						logger.warn(

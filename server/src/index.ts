@@ -106,13 +106,17 @@ async function exitGracefully(): Promise<void> {
 }
 
 async function exitWithError(): Promise<void> {
-	logger.error('exiting with error...');
+	if (processTerminationStarted) {
+		return;
+	}
+
+	processTerminationStarted = true;
 
 	try {
 		await terminateProcess();
 	} catch (error) {}
 
-	logger.warn('calling process.exit(1)...');
+	logger.error('exiting with error...');
 
 	process.exit(1);
 }
@@ -147,16 +151,12 @@ async function terminateProcess(): Promise<void> {
  */
 function handleProcess(): void {
 	process.on('SIGINT', () => {
-		handleExitSignal();
+		void exitGracefully();
 	});
 
 	process.on('SIGTERM', () => {
-		handleExitSignal();
+		void exitGracefully();
 	});
-}
-
-function handleExitSignal(): void {
-	void exitGracefully();
 }
 
 function handleServer(): void {
