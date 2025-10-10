@@ -89,9 +89,9 @@ export type NotificationDataFromPeer<Name extends NotificationNameFromPeer> =
  * that we can use with our signaling types.
  */
 export type TypedProtooNotificationFromPeer = {
-	[N in NotificationNameFromPeer]: {
-		method: N;
-		data: NotificationDataFromPeer<N>;
+	[Name in NotificationNameFromPeer]: {
+		method: Name;
+		data: NotificationDataFromPeer<Name>;
 	};
 }[NotificationNameFromPeer];
 
@@ -217,12 +217,12 @@ export type RequestResponseDataFromPeer<Name extends RequestNameFromPeer> =
  * we can use with our signaling types.
  */
 export type TypedProtooRequestFromPeer = {
-	[N in RequestNameFromPeer]: {
-		method: N;
-		data: RequestDataFromPeer<N>;
-		accept: RequestResponseDataFromPeer<N> extends undefined
-			? (responseData?: RequestResponseDataFromPeer<N>) => void
-			: (responseData: RequestResponseDataFromPeer<N>) => void;
+	[Name in RequestNameFromPeer]: {
+		method: Name;
+		data: RequestDataFromPeer<Name>;
+		accept: RequestResponseDataFromPeer<Name> extends undefined
+			? (responseData?: RequestResponseDataFromPeer<Name>) => void
+			: (responseData: RequestResponseDataFromPeer<Name>) => void;
 		reject: protooTypes.RejectFn;
 	};
 }[RequestNameFromPeer];

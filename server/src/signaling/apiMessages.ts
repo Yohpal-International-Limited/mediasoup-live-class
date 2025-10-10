@@ -44,12 +44,14 @@ export type RequestResponseDataFromBroadcasterPeerToRoom<
 > = RequestNameResponseDataMap<RequestFromBroadcasterPeerToRoom>[Name];
 
 export type TypedApiRequestFromBroadcasterPeerToRoom = {
-	[N in RequestNameFromBroadcasterPeerToRoom]: {
-		name: N;
-		data: RequestDataFromBroadcasterPeerToRoom<N>;
-		accept: RequestResponseDataFromBroadcasterPeerToRoom<N> extends undefined
+	[Name in RequestNameFromBroadcasterPeerToRoom]: {
+		name: Name;
+		data: RequestDataFromBroadcasterPeerToRoom<Name>;
+		accept: RequestResponseDataFromBroadcasterPeerToRoom<Name> extends undefined
 			? () => void
-			: (responseData: RequestResponseDataFromBroadcasterPeerToRoom<N>) => void;
+			: (
+					responseData: RequestResponseDataFromBroadcasterPeerToRoom<Name>
+				) => void;
 	};
 }[RequestNameFromBroadcasterPeerToRoom];
 
@@ -129,11 +131,11 @@ export type RequestResponseDataFromBroadcasterPeer<
 > = RequestNameResponseDataMap<RequestFromBroadcasterPeer>[Name];
 
 export type TypedApiRequestFromBroadcasterPeer = {
-	[N in RequestNameFromBroadcasterPeer]: {
-		name: N;
-		data: RequestDataFromBroadcasterPeer<N>;
-		accept: RequestResponseDataFromBroadcasterPeer<N> extends undefined
+	[Name in RequestNameFromBroadcasterPeer]: {
+		name: Name;
+		data: RequestDataFromBroadcasterPeer<Name>;
+		accept: RequestResponseDataFromBroadcasterPeer<Name> extends undefined
 			? () => void
-			: (responseData: RequestResponseDataFromBroadcasterPeer<N>) => void;
+			: (responseData: RequestResponseDataFromBroadcasterPeer<Name>) => void;
 	};
 }[RequestNameFromBroadcasterPeer];
