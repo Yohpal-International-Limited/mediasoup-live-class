@@ -48,7 +48,7 @@ export type TypedApiRequestFromBroadcasterPeerToRoom = {
 		name: N;
 		data: RequestDataFromBroadcasterPeerToRoom<N>;
 		accept: RequestResponseDataFromBroadcasterPeerToRoom<N> extends undefined
-			? (responseData?: RequestResponseDataFromBroadcasterPeerToRoom<N>) => void
+			? () => void
 			: (responseData: RequestResponseDataFromBroadcasterPeerToRoom<N>) => void;
 	};
 }[RequestNameFromBroadcasterPeerToRoom];
@@ -133,7 +133,7 @@ export type TypedApiRequestFromBroadcasterPeer = {
 		name: N;
 		data: RequestDataFromBroadcasterPeer<N>;
 		accept: RequestResponseDataFromBroadcasterPeer<N> extends undefined
-			? (responseData?: RequestResponseDataFromBroadcasterPeer<N>) => void
+			? () => void
 			: (responseData: RequestResponseDataFromBroadcasterPeer<N>) => void;
 	};
 }[RequestNameFromBroadcasterPeer];

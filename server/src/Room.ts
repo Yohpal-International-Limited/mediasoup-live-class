@@ -269,6 +269,7 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 					`API request processing failed [name:%o]: ${error}`,
 					name
 				);
+
 				reject(error as Error);
 			});
 		});
