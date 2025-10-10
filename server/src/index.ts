@@ -153,10 +153,10 @@ function handleProcess(): void {
 	process.on('SIGTERM', () => {
 		handleExitSignal();
 	});
+}
 
-	function handleExitSignal(): void {
-		void exitGracefully();
-	}
+function handleExitSignal(): void {
+	void exitGracefully();
 }
 
 function handleServer(): void {
