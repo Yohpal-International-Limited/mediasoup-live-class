@@ -9,15 +9,14 @@ import { Bot } from './Bot';
 import { Peer } from './Peer';
 import { BroadcasterPeer } from './BroadcasterPeer';
 import {
-	RequestNameFromBroadcasterPeerToRoom,
-	RequestDataFromBroadcasterPeerToRoom,
-	RequestResponseDataFromBroadcasterPeerToRoom,
-	TypedApiRequestFromBroadcasterPeerToRoom,
-	RequestNameFromBroadcasterPeer,
-	RequestDataFromBroadcasterPeer,
-	RequestResponseDataFromBroadcasterPeer,
+	RequestNameForRoom,
+	RequestApiHttpMethod,
+	RequestApiHttpPath,
+	RequestData,
+	RequestInternalData,
+	RequestResponseData,
+	TypedApiRequest,
 } from './signaling/apiMessages';
-import { PeerNotFound } from './errors';
 import { clone, assertUnreachable } from './utils';
 import type {
 	Config,
@@ -224,6 +223,13 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 		};
 	}
 
+	getBroadcasterPeer(peerId: PeerId): BroadcasterPeer | undefined {
+		return (
+			this.#broadcasterPeers.get(peerId) ??
+			this.#joiningBroadcasterPeers.get(peerId)
+		);
+	}
+
 	processWsConnection({
 		peerId,
 		protooTransport,
@@ -235,7 +241,7 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 	}): void {
 		this.#logger.debug('processWsConnection() [peerId:%o]', peerId);
 
-		this.closeExistingPeer(peerId);
+		this.mayCloseExistingPeer(peerId);
 
 		this.#logger.debug(
 			'processWsConnection() | creating a new Peer [peerId:%o]',
@@ -251,20 +257,52 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 		this.handlePeer(peer);
 	}
 
-	async processApiRequestToRoom<
-		Name extends RequestNameFromBroadcasterPeerToRoom,
-	>(
-		name: Name,
-		...args: RequestDataFromBroadcasterPeerToRoom<Name> extends undefined
-			? [undefined?]
-			: [RequestDataFromBroadcasterPeerToRoom<Name>]
-	): Promise<RequestResponseDataFromBroadcasterPeerToRoom<Name>> {
+	async processApiRequest<Name extends RequestNameForRoom>({
+		name,
+		method,
+		path,
+		data,
+		internalData,
+	}: RequestData<Name> extends undefined
+		? RequestInternalData<Name> extends undefined
+			? {
+					name: Name;
+					method: RequestApiHttpMethod<Name>;
+					path: RequestApiHttpPath<Name>;
+					data?: undefined;
+					internalData?: undefined;
+				}
+			: {
+					name: Name;
+					method: RequestApiHttpMethod<Name>;
+					path: RequestApiHttpPath<Name>;
+					data?: undefined;
+					internalData: RequestInternalData<Name>;
+				}
+		: RequestInternalData<Name> extends undefined
+			? {
+					name: Name;
+					method: RequestApiHttpMethod<Name>;
+					path: RequestApiHttpPath<Name>;
+					data: RequestData<Name>;
+					internalData?: undefined;
+				}
+			: {
+					name: Name;
+					method: RequestApiHttpMethod<Name>;
+					path: RequestApiHttpPath<Name>;
+					data: RequestData<Name>;
+					internalData: RequestInternalData<Name>;
+				}): Promise<RequestResponseData<Name>> {
 		return new Promise((resolve, reject) => {
-			this.handleApiRequestToRoom({
+			this.handleApiRequest({
 				name,
-				data: args[0],
+				method,
+				path,
+				data,
+				internalData,
 				accept: resolve,
-			} as TypedApiRequestFromBroadcasterPeerToRoom).catch(error => {
+			} as TypedApiRequest<RequestNameForRoom>).catch(error => {
 				this.#logger.warn(
 					`API request processing failed [name:%o]: ${error}`,
 					name
@@ -273,26 +311,6 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 				reject(error as Error);
 			});
 		});
-	}
-
-	async processApiRequestToBroadcasterPeer<
-		Name extends RequestNameFromBroadcasterPeer,
-	>(
-		peerId: PeerId,
-		name: Name,
-		...args: RequestDataFromBroadcasterPeer<Name> extends undefined
-			? [undefined?]
-			: [RequestDataFromBroadcasterPeer<Name>]
-	): Promise<RequestResponseDataFromBroadcasterPeer<Name>> {
-		const broadcasterPeer =
-			this.#broadcasterPeers.get(peerId) ??
-			this.#joiningBroadcasterPeers.get(peerId);
-
-		if (!broadcasterPeer) {
-			throw new PeerNotFound(`BroadcasterPeer '${peerId}' not found`);
-		}
-
-		return broadcasterPeer.processApiRequest(name, ...args);
 	}
 
 	private mayClose(): void {
@@ -337,12 +355,12 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 		);
 	}
 
-	private closeExistingPeer(peerId: PeerId): void {
+	private mayCloseExistingPeer(peerId: PeerId): void {
 		const existingPeer = this.#peers.get(peerId);
 
 		if (existingPeer) {
 			this.#logger.warn(
-				'closeExistingPeer() | there is already a Peer with same peerId, closing it [peerId:%o]',
+				'mayCloseExistingPeer() | there is already a Peer with same peerId, closing it [peerId:%o]',
 				peerId
 			);
 
@@ -353,7 +371,7 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 
 		if (existingJoiningPeer) {
 			this.#logger.warn(
-				'closeExistingPeer() | there is already a joining Peer with same peerId, closing it [peerId:%o]',
+				'mayCloseExistingPeer() | there is already a joining Peer with same peerId, closing it [peerId:%o]',
 				peerId
 			);
 
@@ -364,7 +382,7 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 
 		if (existingBroadcasterPeer) {
 			this.#logger.warn(
-				'closeExistingPeer() | there is already a BroadcasterPeer with same peerId, closing it [peerId:%o]',
+				'mayCloseExistingPeer() | there is already a BroadcasterPeer with same peerId, closing it [peerId:%o]',
 				peerId
 			);
 
@@ -376,7 +394,7 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 
 		if (existingJoiningBroadcasterPeer) {
 			this.#logger.warn(
-				'closeExistingPeer() | there is already a joining BroadcasterPeer with same peerId, closing it [peerId:%o]',
+				'mayCloseExistingPeer() | there is already a joining BroadcasterPeer with same peerId, closing it [peerId:%o]',
 				peerId
 			);
 
@@ -723,10 +741,10 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 	}
 
 	// eslint-disable-next-line @typescript-eslint/require-await
-	private async handleApiRequestToRoom(
-		request: TypedApiRequestFromBroadcasterPeerToRoom
+	private async handleApiRequest(
+		request: TypedApiRequest<RequestNameForRoom>
 	): Promise<void> {
-		const { name, data, accept } = request;
+		const { name, data, internalData, accept } = request;
 
 		switch (name) {
 			case 'getRouterRtpCapabilities': {
@@ -738,12 +756,13 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 			}
 
 			case 'createBroadcasterPeer': {
-				const { peerId, remoteAddress, displayName, device } = data;
+				const { peerId, displayName, device } = data;
+				const { remoteAddress } = internalData;
 
-				this.closeExistingPeer(peerId);
+				this.mayCloseExistingPeer(peerId);
 
 				this.#logger.debug(
-					'handleApiRequestToRoom() | creating a new BroadcasterPeer [peerId:%o]',
+					'handleApiRequest() | creating a new BroadcasterPeer [peerId:%o]',
 					peerId
 				);
 

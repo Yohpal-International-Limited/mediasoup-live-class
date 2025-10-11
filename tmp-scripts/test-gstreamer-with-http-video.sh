@@ -21,7 +21,9 @@ fi
 
 export SERVER_URL=${SERVER_URL:="${PROTOCOL}://${DOMAIN}:${PORT}"}
 export ROOM_ID=${ROOM_ID:="dev"}
-export MEDIA_URL=${MEDIA_URL:="https://codeda.com/data/rtmpDump.mp4"}
+export MEDIA_URL=${MEDIA_URL:="https://html5videoplayer.net/videos/toystory.mp4"}
 export LOCAL_VIDEO_PATH=${LOCAL_VIDEO_PATH:="/tmp/video.mp4"}
+
+rm "${LOCAL_VIDEO_PATH}"
 
 ./broadcasters/gstreamer-with-http-video.sh

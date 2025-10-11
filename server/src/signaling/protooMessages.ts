@@ -2,11 +2,6 @@ import type * as mediasoupTypes from 'mediasoup/types';
 import type * as protooTypes from 'protoo-server';
 import type * as throttleTypes from '@sitespeed.io/throttle';
 
-import {
-	NotificationNameDataMap,
-	RequestNameDataMap,
-	RequestNameResponseDataMap,
-} from './common';
 import type {
 	PeerId,
 	PeerDevice,
@@ -17,6 +12,18 @@ import type {
 	PeerDataProducerAppData,
 	DataConsumerAppData,
 } from '../types';
+
+type NotificationNameDataMap<U extends { name: string }> = {
+	[K in U as K['name']]: K extends { data: infer D } ? D : undefined;
+};
+
+type RequestNameDataMap<U extends { name: string }> = {
+	[K in U as K['name']]: K extends { data: infer D } ? D : undefined;
+};
+
+type RequestNameResponseDataMap<U extends { name: string }> = {
+	[K in U as K['name']]: K extends { responseData: infer R } ? R : undefined;
+};
 
 /**
  * Notifications sent from peer to server using Protoo protocol.

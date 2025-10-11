@@ -89,6 +89,15 @@ export type SerializedPeer = {
 	remoteAddress: string;
 };
 
+export type ApiHttpMethod = 'GET' | 'POST' | 'DELETE';
+
+export type ApiHttpPath = (
+	| string
+	| {
+			[key: string]: string;
+	  }
+)[];
+
 export type TransportDirection = 'producer' | 'consumer';
 
 export type Source = 'audio' | 'video' | 'screensharing';

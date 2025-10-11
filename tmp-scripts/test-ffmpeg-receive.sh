@@ -25,7 +25,7 @@
 # video = consumers.find(c => c.kind === 'video');
 #
 # console.log(
-# 	`AUDIO_PRODUCER_ID=${audio.id} VIDEO_PRODUCER_ID=${video.id} AUDIO_CONSUMER_PT=100 VIDEO_CONSUMER_PT=101 ./test-ffmpeg-receive.sh`
+# 	`AUDIO_PRODUCER_ID=${audio.id} VIDEO_PRODUCER_ID=${video.id} AUDIO_CONSUMER_PT=100 VIDEO_CONSUMER_PT=101 ./tmp-scripts/test-ffmpeg-receive.sh`
 # );
 # ```
 #

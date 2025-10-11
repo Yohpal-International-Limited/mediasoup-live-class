@@ -559,7 +559,7 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 			if (room) {
 				callback(room);
 			} else {
-				errback(new RoomNotFound(`room '${roomId}' doesn't exist`));
+				errback(new RoomNotFound(`Room '${roomId}' doesn't exist`));
 			}
 		});
 	}

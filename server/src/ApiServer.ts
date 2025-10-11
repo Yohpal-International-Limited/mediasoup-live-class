@@ -4,8 +4,9 @@ import * as bodyParser from 'body-parser';
 
 import { Logger } from './Logger';
 import { EnhancedEventEmitter } from './enhancedEvents';
-import { Room } from './Room';
-import { ServerError, ForbiddenError } from './errors';
+import type { Room } from './Room';
+import type { BroadcasterPeer } from './BroadcasterPeer';
+import { ServerError, ForbiddenError, PeerNotFound } from './errors';
 import type { RoomId } from './types';
 
 const logger = new Logger('ApiServer');
@@ -32,6 +33,7 @@ export type ApiServerEvents = {
 
 interface ApiServerExpressRequest extends expressTypes.Request {
 	room?: Room;
+	peer?: BroadcasterPeer;
 }
 
 export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
@@ -108,7 +110,7 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		});
 
 		/**
-		 * For every API request, obtain or create a Room with the given `roomId`.
+		 * For every API request, obtain a Room with the given `roomId`.
 		 */
 		this.#expressApp.param(
 			'roomId',
@@ -129,16 +131,41 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		);
 
 		/**
+		 * For every API request, obtain a Peer with the given `peerId` in the Room
+		 * with the given `roomId`.
+		 */
+		this.#expressApp.param(
+			'peerId',
+			(req: ApiServerExpressRequest, res, next, peerId) => {
+				const peer = req.room?.getBroadcasterPeer(peerId);
+
+				if (!peer) {
+					next(new PeerNotFound(`BroadcastPeer '${peerId}' doesn't exist`));
+
+					return;
+				}
+
+				req.peer = peer;
+
+				next();
+			}
+		);
+
+		/**
 		 * API GET resource that returns the mediasoup Router RTP capabilities of
 		 * the Room.
 		 */
 		this.#expressApp.get(
 			'/rooms/:roomId',
 			async (req: ApiServerExpressRequest, res, next) => {
+				const { roomId } = req.params;
+
 				try {
-					const responseData = await req.room!.processApiRequestToRoom(
-						'getRouterRtpCapabilities'
-					);
+					const responseData = await req.room!.processApiRequest({
+						name: 'getRouterRtpCapabilities',
+						method: 'GET',
+						path: ['rooms', { roomId: roomId! }],
+					});
 
 					res.status(200).json(responseData);
 				} catch (error) {
@@ -157,11 +184,18 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 					const { roomId } = req.params;
 					const { peerId, displayName, device } = req.body;
 
-					await req.room!.processApiRequestToRoom('createBroadcasterPeer', {
-						peerId,
-						remoteAddress: req.ip ?? req.ips[0]!,
-						displayName,
-						device,
+					await req.room!.processApiRequest({
+						name: 'createBroadcasterPeer',
+						method: 'POST',
+						path: ['rooms', { roomId: roomId! }, 'broadcasters'],
+						data: {
+							peerId,
+							displayName,
+							device,
+						},
+						internalData: {
+							remoteAddress: req.ip ?? req.ips[0]!,
+						},
 					});
 
 					res
@@ -176,20 +210,31 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		);
 
 		/**
-		 * DELETE API to disconnect a BroadcasterPeer.
+		 * POST API to join the Room. This must be sent after creating the
+		 * mediasoup PlainTransports.
 		 */
-		this.#expressApp.delete(
-			'/rooms/:roomId/broadcasters/:peerId',
+		this.#expressApp.post(
+			'/rooms/:roomId/broadcasters/:peerId/join',
 			async (req: ApiServerExpressRequest, res, next) => {
-				const { peerId } = req.params;
+				const { roomId, peerId } = req.params;
 
 				try {
-					await req.room!.processApiRequestToBroadcasterPeer(
-						peerId!,
-						'disconnect'
-					);
+					await req.peer!.processApiRequest({
+						name: 'join',
+						method: 'POST',
+						path: [
+							'rooms',
+							{ roomId: roomId! },
+							'broadcasters',
+							{ peerId: peerId! },
+							'join',
+						],
+					});
 
-					res.sendStatus(204);
+					res
+						.status(200)
+						.set('Content-Type', 'text/plain; charset=utf-8')
+						.send('BroadcasterPeer joined');
 				} catch (error) {
 					next(error);
 				}
@@ -197,21 +242,26 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		);
 
 		/**
-		 * POST API to join the Room. This must be sent after creating the
-		 * mediasoup PlainTransports.
+		 * DELETE API to disconnect a BroadcasterPeer.
 		 */
-		this.#expressApp.post(
-			'/rooms/:roomId/broadcasters/:peerId/join',
+		this.#expressApp.delete(
+			'/rooms/:roomId/broadcasters/:peerId',
 			async (req: ApiServerExpressRequest, res, next) => {
-				const { peerId } = req.params;
+				const { roomId, peerId } = req.params;
 
 				try {
-					await req.room!.processApiRequestToBroadcasterPeer(peerId!, 'join');
+					await req.peer!.processApiRequest({
+						name: 'disconnect',
+						method: 'DELETE',
+						path: [
+							'rooms',
+							{ roomId: roomId! },
+							'broadcasters',
+							{ peerId: peerId! },
+						],
+					});
 
-					res
-						.status(200)
-						.set('Content-Type', 'text/plain; charset=utf-8')
-						.send('BroadcasterPeer joined');
+					res.sendStatus(204);
 				} catch (error) {
 					next(error);
 				}
@@ -229,18 +279,24 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 				const { direction, comedia, rtcpMux } = req.body;
 
 				try {
-					const responseData =
-						await req.room!.processApiRequestToBroadcasterPeer(
-							peerId!,
-							'createPlainTransport',
-							{
-								comedia,
-								rtcpMux,
-								appData: {
-									direction,
-								},
-							}
-						);
+					const responseData = await req.peer!.processApiRequest({
+						name: 'createPlainTransport',
+						method: 'POST',
+						path: [
+							'rooms',
+							{ roomId: roomId! },
+							'broadcasters',
+							{ peerId: peerId! },
+							'transports',
+						],
+						data: {
+							comedia,
+							rtcpMux,
+							appData: {
+								direction,
+							},
+						},
+					});
 
 					res
 						.status(201)
@@ -261,20 +317,28 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		this.#expressApp.post(
 			'/rooms/:roomId/broadcasters/:peerId/transports/:transportId/connect',
 			async (req: ApiServerExpressRequest, res, next) => {
-				const { peerId, transportId } = req.params;
+				const { roomId, peerId, transportId } = req.params;
 				const { ip, port, rtcpPort } = req.body;
 
 				try {
-					await req.room!.processApiRequestToBroadcasterPeer(
-						peerId!,
-						'connectPlainTransport',
-						{
-							transportId: transportId!,
+					await req.peer!.processApiRequest({
+						name: 'connectPlainTransport',
+						method: 'POST',
+						path: [
+							'rooms',
+							{ roomId: roomId! },
+							'broadcasters',
+							{ peerId: peerId! },
+							'transports',
+							{ transportId: transportId! },
+							'connect',
+						],
+						data: {
 							ip,
 							port,
 							rtcpPort,
-						}
-					);
+						},
+					});
 
 					res
 						.status(200)
@@ -293,23 +357,29 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		 * Producer.
 		 */
 		this.#expressApp.post(
-			'/rooms/:roomId/broadcasters/:peerId/transports/:transportId/producers',
+			'/rooms/:roomId/broadcasters/:peerId/producers',
 			async (req: ApiServerExpressRequest, res, next) => {
-				const { roomId, peerId, transportId } = req.params;
-				const { kind, rtpParameters, appData } = req.body;
+				const { roomId, peerId } = req.params;
+				const { transportId, kind, rtpParameters, appData } = req.body;
 
 				try {
-					const responseData =
-						await req.room!.processApiRequestToBroadcasterPeer(
-							peerId!,
-							'produce',
-							{
-								transportId: transportId!,
-								kind,
-								rtpParameters,
-								appData,
-							}
-						);
+					const responseData = await req.peer!.processApiRequest({
+						name: 'produce',
+						method: 'POST',
+						path: [
+							'rooms',
+							{ roomId: roomId! },
+							'broadcasters',
+							{ peerId: peerId! },
+							'producers',
+						],
+						data: {
+							transportId,
+							kind,
+							rtpParameters,
+							appData,
+						},
+					});
 
 					res
 						.status(201)
@@ -330,23 +400,29 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		 * consume.
 		 */
 		this.#expressApp.post(
-			'/rooms/:roomId/broadcasters/:peerId/transports/:transportId/consume',
+			'/rooms/:roomId/broadcasters/:peerId/consumers',
 			async (req: ApiServerExpressRequest, res, next) => {
-				const { roomId, peerId, transportId } = req.params;
-				const { producerId, paused, rtpCapabilities } = req.body;
+				const { roomId, peerId } = req.params;
+				const { transportId, producerId, paused, rtpCapabilities } = req.body;
 
 				try {
-					const responseData =
-						await req.room!.processApiRequestToBroadcasterPeer(
-							peerId!,
-							'consume',
-							{
-								transportId: transportId!,
-								producerId,
-								paused,
-								rtpCapabilities,
-							}
-						);
+					const responseData = await req.peer!.processApiRequest({
+						name: 'consume',
+						method: 'POST',
+						path: [
+							'rooms',
+							{ roomId: roomId! },
+							'broadcasters',
+							{ peerId: peerId! },
+							'consumers',
+						],
+						data: {
+							transportId,
+							producerId,
+							paused,
+							rtpCapabilities,
+						},
+					});
 
 					res
 						.status(201)
@@ -367,18 +443,24 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		 * resume.
 		 */
 		this.#expressApp.post(
-			'/rooms/:roomId/broadcasters/:peerId/transports/:transportId/consumers/:consumerId/resume',
+			'/rooms/:roomId/broadcasters/:peerId/consumers/:consumerId/resume',
 			async (req: ApiServerExpressRequest, res, next) => {
-				const { peerId, consumerId } = req.params;
+				const { roomId, peerId, consumerId } = req.params;
 
 				try {
-					await req.room!.processApiRequestToBroadcasterPeer(
-						peerId!,
-						'resumeConsumer',
-						{
-							consumerId: consumerId!,
-						}
-					);
+					await req.peer!.processApiRequest({
+						name: 'resumeConsumer',
+						method: 'POST',
+						path: [
+							'rooms',
+							{ roomId: roomId! },
+							'broadcasters',
+							{ peerId: peerId! },
+							'consumers',
+							{ consumerId: consumerId! },
+							'resume',
+						],
+					});
 
 					res
 						.status(200)

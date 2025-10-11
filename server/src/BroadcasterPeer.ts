@@ -3,10 +3,13 @@ import type * as mediasoupTypes from 'mediasoup/types';
 import { Logger } from './Logger';
 import { EnhancedEventEmitter } from './enhancedEvents';
 import {
-	RequestNameFromBroadcasterPeer,
-	RequestDataFromBroadcasterPeer,
-	RequestResponseDataFromBroadcasterPeer,
-	TypedApiRequestFromBroadcasterPeer,
+	RequestNameForBroadcastPeer,
+	RequestApiHttpMethod,
+	RequestApiHttpPath,
+	RequestData,
+	RequestInternalData,
+	RequestResponseData,
+	TypedApiRequest,
 } from './signaling/apiMessages';
 import { assertUnreachable } from './utils';
 import {
@@ -203,18 +206,52 @@ export class BroadcasterPeer extends EnhancedEventEmitter<BroadcasterPeerEvents>
 		return Array.from(this.#producers.values());
 	}
 
-	async processApiRequest<Name extends RequestNameFromBroadcasterPeer>(
-		name: Name,
-		...args: RequestDataFromBroadcasterPeer<Name> extends undefined
-			? [undefined?]
-			: [RequestDataFromBroadcasterPeer<Name>]
-	): Promise<RequestResponseDataFromBroadcasterPeer<Name>> {
+	async processApiRequest<Name extends RequestNameForBroadcastPeer>({
+		name,
+		method,
+		path,
+		data,
+		internalData,
+	}: RequestData<Name> extends undefined
+		? RequestInternalData<Name> extends undefined
+			? {
+					name: Name;
+					method: RequestApiHttpMethod<Name>;
+					path: RequestApiHttpPath<Name>;
+					data?: undefined;
+					internalData?: undefined;
+				}
+			: {
+					name: Name;
+					method: RequestApiHttpMethod<Name>;
+					path: RequestApiHttpPath<Name>;
+					data?: undefined;
+					internalData: RequestInternalData<Name>;
+				}
+		: RequestInternalData<Name> extends undefined
+			? {
+					name: Name;
+					method: RequestApiHttpMethod<Name>;
+					path: RequestApiHttpPath<Name>;
+					data: RequestData<Name>;
+					internalData?: undefined;
+				}
+			: {
+					name: Name;
+					method: RequestApiHttpMethod<Name>;
+					path: RequestApiHttpPath<Name>;
+					data: RequestData<Name>;
+					internalData: RequestInternalData<Name>;
+				}): Promise<RequestResponseData<Name>> {
 		return new Promise((resolve, reject) => {
 			this.handleApiRequest({
 				name,
-				data: args[0],
+				method,
+				path,
+				data,
+				internalData,
 				accept: resolve,
-			} as TypedApiRequestFromBroadcasterPeer).catch(error => {
+			} as TypedApiRequest<RequestNameForBroadcastPeer>).catch(error => {
 				this.#logger.warn(
 					`API request processing failed [name:%o]: ${error}`,
 					name
@@ -298,9 +335,9 @@ export class BroadcasterPeer extends EnhancedEventEmitter<BroadcasterPeerEvents>
 	}
 
 	private async handleApiRequest(
-		request: TypedApiRequestFromBroadcasterPeer
+		request: TypedApiRequest<RequestNameForBroadcastPeer>
 	): Promise<void> {
-		const { name, data, accept } = request;
+		const { name, path, data, accept } = request;
 
 		switch (name) {
 			case 'join': {
@@ -359,7 +396,8 @@ export class BroadcasterPeer extends EnhancedEventEmitter<BroadcasterPeerEvents>
 			}
 
 			case 'connectPlainTransport': {
-				const { transportId, ip, port, rtcpPort } = data;
+				const transportId = path[5].transportId;
+				const { ip, port, rtcpPort } = data;
 				const transport = this.assertAndGetPlainTransport(transportId);
 
 				await transport.connect({
@@ -450,7 +488,7 @@ export class BroadcasterPeer extends EnhancedEventEmitter<BroadcasterPeerEvents>
 			case 'resumeConsumer': {
 				this.assertJoined();
 
-				const { consumerId } = data;
+				const consumerId = path[5].consumerId;
 				const consumer = this.assertAndGetConsumer(consumerId);
 
 				await consumer.resume();

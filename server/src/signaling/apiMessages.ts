@@ -1,11 +1,13 @@
 import type * as mediasoupTypes from 'mediasoup/types';
 
-import { RequestNameDataMap, RequestNameResponseDataMap } from './common';
 import type {
 	PeerId,
 	PeerDevice,
 	PlainTransportAppData,
 	PeerProducerAppData,
+	RoomId,
+	ApiHttpMethod,
+	ApiHttpPath,
 } from '../types';
 
 /**
@@ -15,62 +17,54 @@ import type {
  * - Those requests are intended for the `Room` instance.
  * - The field `responseData` becomes the HTTP response body (if any).
  */
-type RequestFromBroadcasterPeerToRoom =
+type Request =
 	| {
 			name: 'getRouterRtpCapabilities';
+			method: 'GET';
+			path: ['rooms', { roomId: RoomId }];
 			responseData: {
 				routerRtpCapabilities: mediasoupTypes.RouterRtpCapabilities;
 			};
 	  }
 	| {
 			name: 'createBroadcasterPeer';
+			method: 'POST';
+			path: ['rooms', { roomId: RoomId }, 'broadcasters'];
 			data: {
 				peerId: PeerId;
-				remoteAddress: string;
 				displayName: string;
 				device: PeerDevice;
 			};
-	  };
-
-export type RequestNameFromBroadcasterPeerToRoom =
-	keyof RequestNameDataMap<RequestFromBroadcasterPeerToRoom>;
-
-export type RequestDataFromBroadcasterPeerToRoom<
-	Name extends RequestNameFromBroadcasterPeerToRoom,
-> = RequestNameDataMap<RequestFromBroadcasterPeerToRoom>[Name];
-
-export type RequestResponseDataFromBroadcasterPeerToRoom<
-	Name extends RequestNameFromBroadcasterPeerToRoom,
-> = RequestNameResponseDataMap<RequestFromBroadcasterPeerToRoom>[Name];
-
-export type TypedApiRequestFromBroadcasterPeerToRoom = {
-	[Name in RequestNameFromBroadcasterPeerToRoom]: {
-		name: Name;
-		data: RequestDataFromBroadcasterPeerToRoom<Name>;
-		accept: RequestResponseDataFromBroadcasterPeerToRoom<Name> extends undefined
-			? () => void
-			: (
-					responseData: RequestResponseDataFromBroadcasterPeerToRoom<Name>
-				) => void;
-	};
-}[RequestNameFromBroadcasterPeerToRoom];
-
-/**
- * Requests sent from broadcaster to server using the HTTP API.
- *
- * @remarks
- * - Those requests are intended for the `BroadcastPeer` instance.
- * - The field `responseData` becomes the HTTP response body (if any).
- */
-type RequestFromBroadcasterPeer =
+			internalData: {
+				remoteAddress: string;
+			};
+	  }
 	| {
 			name: 'join';
+			method: 'POST';
+			path: [
+				'rooms',
+				{ roomId: RoomId },
+				'broadcasters',
+				{ peerId: PeerId },
+				'join',
+			];
 	  }
 	| {
 			name: 'disconnect';
+			method: 'DELETE';
+			path: ['rooms', { roomId: RoomId }, 'broadcasters', { peerId: PeerId }];
 	  }
 	| {
 			name: 'createPlainTransport';
+			method: 'POST';
+			path: [
+				'rooms',
+				{ roomId: RoomId },
+				'broadcasters',
+				{ peerId: PeerId },
+				'transports',
+			];
 			data: {
 				comedia?: boolean;
 				rtcpMux?: boolean;
@@ -85,8 +79,17 @@ type RequestFromBroadcasterPeer =
 	  }
 	| {
 			name: 'connectPlainTransport';
+			method: 'POST';
+			path: [
+				'rooms',
+				{ roomId: RoomId },
+				'broadcasters',
+				{ peerId: PeerId },
+				'transports',
+				{ transportId: string },
+				'connect',
+			];
 			data: {
-				transportId: string;
 				ip: string;
 				port: number;
 				rtcpPort?: number;
@@ -94,6 +97,14 @@ type RequestFromBroadcasterPeer =
 	  }
 	| {
 			name: 'produce';
+			method: 'POST';
+			path: [
+				'rooms',
+				{ roomId: RoomId },
+				'broadcasters',
+				{ peerId: PeerId },
+				'producers',
+			];
 			data: {
 				transportId: string;
 				kind: mediasoupTypes.MediaKind;
@@ -104,6 +115,14 @@ type RequestFromBroadcasterPeer =
 	  }
 	| {
 			name: 'consume';
+			method: 'POST';
+			path: [
+				'rooms',
+				{ roomId: RoomId },
+				'broadcasters',
+				{ peerId: PeerId },
+				'consumers',
+			];
 			data: {
 				transportId: string;
 				producerId: string;
@@ -114,28 +133,80 @@ type RequestFromBroadcasterPeer =
 	  }
 	| {
 			name: 'resumeConsumer';
-			data: {
-				consumerId: string;
-			};
+			method: 'POST';
+			path: [
+				'rooms',
+				{ roomId: RoomId },
+				'broadcasters',
+				{ peerId: PeerId },
+				'consumers',
+				{ consumerId: string },
+				'resume',
+			];
 	  };
 
-export type RequestNameFromBroadcasterPeer =
-	keyof RequestNameDataMap<RequestFromBroadcasterPeer>;
+type RequestNameApiHttpMethodMap<
+	U extends { name: string; method: ApiHttpMethod },
+> = {
+	[K in U as K['name']]: K['method'];
+};
 
-export type RequestDataFromBroadcasterPeer<
-	Name extends RequestNameFromBroadcasterPeer,
-> = RequestNameDataMap<RequestFromBroadcasterPeer>[Name];
-
-export type RequestResponseDataFromBroadcasterPeer<
-	Name extends RequestNameFromBroadcasterPeer,
-> = RequestNameResponseDataMap<RequestFromBroadcasterPeer>[Name];
-
-export type TypedApiRequestFromBroadcasterPeer = {
-	[Name in RequestNameFromBroadcasterPeer]: {
-		name: Name;
-		data: RequestDataFromBroadcasterPeer<Name>;
-		accept: RequestResponseDataFromBroadcasterPeer<Name> extends undefined
-			? () => void
-			: (responseData: RequestResponseDataFromBroadcasterPeer<Name>) => void;
+type RequestNameApiHttpPathMap<U extends { name: string; path: ApiHttpPath }> =
+	{
+		[K in U as K['name']]: K['path'];
 	};
-}[RequestNameFromBroadcasterPeer];
+
+type RequestNameDataMap<U extends { name: string }> = {
+	[K in U as K['name']]: K extends { data: infer D } ? D : undefined;
+};
+
+type RequestNameInternalDataMap<U extends { name: string }> = {
+	[K in U as K['name']]: K extends { internalData: infer D } ? D : undefined;
+};
+
+type RequestNameResponseDataMap<U extends { name: string }> = {
+	[K in U as K['name']]: K extends { responseData: infer R } ? R : undefined;
+};
+
+type RequestName = Request['name'];
+
+export type RequestNameForRoom =
+	| 'getRouterRtpCapabilities'
+	| 'createBroadcasterPeer';
+
+export type RequestNameForBroadcastPeer =
+	| 'join'
+	| 'disconnect'
+	| 'createPlainTransport'
+	| 'connectPlainTransport'
+	| 'produce'
+	| 'consume'
+	| 'resumeConsumer';
+
+export type RequestApiHttpMethod<Name extends RequestName> =
+	RequestNameApiHttpMethodMap<Request>[Name];
+
+export type RequestApiHttpPath<Name extends RequestName> =
+	RequestNameApiHttpPathMap<Request>[Name];
+
+export type RequestData<Name extends RequestName> =
+	RequestNameDataMap<Request>[Name];
+
+export type RequestInternalData<Name extends RequestName> =
+	RequestNameInternalDataMap<Request>[Name];
+
+export type RequestResponseData<Name extends RequestName> =
+	RequestNameResponseDataMap<Request>[Name];
+
+export type TypedApiRequest<Name extends RequestName> = {
+	[N in Name]: {
+		name: N;
+		method: RequestApiHttpMethod<N>;
+		path: RequestApiHttpPath<N>;
+		data: RequestData<N>;
+		internalData: RequestInternalData<N>;
+		accept: RequestResponseData<N> extends undefined
+			? () => void
+			: (responseData: RequestResponseData<N>) => void;
+	};
+}[Name];
