@@ -12,10 +12,6 @@ import type {
 
 /**
  * Requests sent from broadcaster to server using the HTTP API.
- *
- * @remarks
- * - Those requests are intended for the `Room` instance.
- * - The field `responseData` becomes the HTTP response body (if any).
  */
 type Request =
 	| {
