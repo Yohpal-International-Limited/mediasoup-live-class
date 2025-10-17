@@ -4,8 +4,8 @@ import { Logger } from './Logger';
 import { EnhancedEventEmitter } from './enhancedEvents';
 import {
 	RequestNameForBroadcastPeer,
-	RequestApiHttpMethod,
-	RequestApiHttpPath,
+	RequestApiMethod,
+	RequestApiPath,
 	RequestData,
 	RequestInternalData,
 	RequestResponseData,
@@ -24,6 +24,7 @@ import type {
 	PeerDevice,
 	SerializedPeer,
 	TransportDirection,
+	PeerProducersInfo,
 	PlainTransportAppData,
 	ProducerAppData,
 	ConsumerAppData,
@@ -99,6 +100,13 @@ export type BroadcasterPeerEvents = {
 			rtpCapabilities?: mediasoupTypes.RtpCapabilities;
 		},
 		callback: (canConsume: boolean) => void,
+	];
+	/**
+	 * Emitted to obtain info about current Peers/BroadcasterPeers and their
+	 * Producers.
+	 */
+	'get-peer-producers-infos': [
+		callback: (peerProducersInfos: PeerProducersInfo[]) => void,
 	];
 	/**
 	 * Emitted to obtain a Producer.
@@ -216,30 +224,30 @@ export class BroadcasterPeer extends EnhancedEventEmitter<BroadcasterPeerEvents>
 		? RequestInternalData<Name> extends undefined
 			? {
 					name: Name;
-					method: RequestApiHttpMethod<Name>;
-					path: RequestApiHttpPath<Name>;
+					method: RequestApiMethod<Name>;
+					path: RequestApiPath<Name>;
 					data?: undefined;
 					internalData?: undefined;
 				}
 			: {
 					name: Name;
-					method: RequestApiHttpMethod<Name>;
-					path: RequestApiHttpPath<Name>;
+					method: RequestApiMethod<Name>;
+					path: RequestApiPath<Name>;
 					data?: undefined;
 					internalData: RequestInternalData<Name>;
 				}
 		: RequestInternalData<Name> extends undefined
 			? {
 					name: Name;
-					method: RequestApiHttpMethod<Name>;
-					path: RequestApiHttpPath<Name>;
+					method: RequestApiMethod<Name>;
+					path: RequestApiPath<Name>;
 					data: RequestData<Name>;
 					internalData?: undefined;
 				}
 			: {
 					name: Name;
-					method: RequestApiHttpMethod<Name>;
-					path: RequestApiHttpPath<Name>;
+					method: RequestApiMethod<Name>;
+					path: RequestApiPath<Name>;
 					data: RequestData<Name>;
 					internalData: RequestInternalData<Name>;
 				}): Promise<RequestResponseData<Name>> {
@@ -432,6 +440,16 @@ export class BroadcasterPeer extends EnhancedEventEmitter<BroadcasterPeerEvents>
 				this.emit('new-producer', { producer });
 
 				accept({ producerId: producer.id });
+
+				break;
+			}
+
+			case 'getPeerProducersInfos': {
+				this.assertJoined();
+
+				this.emit('get-peer-producers-infos', peerProducersInfos => {
+					accept({ peerProducersInfos });
+				});
 
 				break;
 			}

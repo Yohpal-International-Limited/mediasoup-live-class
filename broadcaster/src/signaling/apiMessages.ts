@@ -1,4 +1,4 @@
-import type * as mediasoupTypes from 'mediasoup/types';
+import type * as mediasoupTypes from 'mediasoup-client/types';
 
 import type {
 	RoomId,
@@ -21,7 +21,7 @@ type Request =
 			method: 'GET';
 			path: ['rooms', { roomId: RoomId }];
 			responseData: {
-				routerRtpCapabilities: mediasoupTypes.RouterRtpCapabilities;
+				routerRtpCapabilities: mediasoupTypes.RtpCapabilities;
 			};
 	  }
 	| {
@@ -32,9 +32,6 @@ type Request =
 				peerId: PeerId;
 				displayName: string;
 				device: PeerDevice;
-			};
-			internalData: {
-				remoteAddress: string;
 			};
 	  }
 	| {
@@ -164,29 +161,11 @@ type RequestNameDataMap<U extends { name: string }> = {
 	[K in U as K['name']]: K extends { data: infer D } ? D : undefined;
 };
 
-type RequestNameInternalDataMap<U extends { name: string }> = {
-	[K in U as K['name']]: K extends { internalData: infer D } ? D : undefined;
-};
-
 type RequestNameResponseDataMap<U extends { name: string }> = {
 	[K in U as K['name']]: K extends { responseData: infer R } ? R : undefined;
 };
 
-type RequestName = Request['name'];
-
-export type RequestNameForRoom =
-	| 'getRouterRtpCapabilities'
-	| 'createBroadcasterPeer';
-
-export type RequestNameForBroadcastPeer =
-	| 'join'
-	| 'disconnect'
-	| 'createPlainTransport'
-	| 'connectPlainTransport'
-	| 'produce'
-	| 'getPeerProducersInfos'
-	| 'consume'
-	| 'resumeConsumer';
+export type RequestName = Request['name'];
 
 export type RequestApiMethod<Name extends RequestName> =
 	RequestNameApiMethodMap<Request>[Name];
@@ -197,9 +176,6 @@ export type RequestApiPath<Name extends RequestName> =
 export type RequestData<Name extends RequestName> =
 	RequestNameDataMap<Request>[Name];
 
-export type RequestInternalData<Name extends RequestName> =
-	RequestNameInternalDataMap<Request>[Name];
-
 export type RequestResponseData<Name extends RequestName> =
 	RequestNameResponseDataMap<Request>[Name];
 
@@ -209,7 +185,6 @@ export type TypedApiRequest<Name extends RequestName> = {
 		method: RequestApiMethod<N>;
 		path: RequestApiPath<N>;
 		data: RequestData<N>;
-		internalData: RequestInternalData<N>;
 		accept: RequestResponseData<N> extends undefined
 			? () => void
 			: (responseData: RequestResponseData<N>) => void;

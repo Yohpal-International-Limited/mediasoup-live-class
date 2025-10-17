@@ -384,9 +384,37 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 					res
 						.status(201)
 						.location(
-							`/rooms/${roomId}/broadcasters/${peerId}/transports/${transportId}/producers/${responseData.producerId}`
+							`/rooms/${roomId}/broadcasters/${peerId}/producers/${responseData.producerId}`
 						)
 						.json(responseData);
+				} catch (error) {
+					next(error);
+				}
+			}
+		);
+
+		/**
+		 * GET API to obtain info about current Producers.
+		 */
+		this.#expressApp.get(
+			'/rooms/:roomId/broadcasters/:peerId/peerProducersInfos',
+			async (req: ApiServerExpressRequest, res, next) => {
+				const { roomId, peerId } = req.params;
+
+				try {
+					const responseData = await req.peer!.processApiRequest({
+						name: 'getPeerProducersInfos',
+						method: 'GET',
+						path: [
+							'rooms',
+							{ roomId: roomId! },
+							'broadcasters',
+							{ peerId: peerId! },
+							'peerProducersInfos',
+						],
+					});
+
+					res.status(200).json(responseData);
 				} catch (error) {
 					next(error);
 				}
@@ -427,7 +455,7 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 					res
 						.status(201)
 						.location(
-							`/rooms/${roomId}/broadcasters/${peerId}/transports/${transportId}/consumers/${responseData.consumerId}`
+							`/rooms/${roomId}/broadcasters/${peerId}/consumers/${responseData.consumerId}`
 						)
 						.json(responseData);
 				} catch (error) {
