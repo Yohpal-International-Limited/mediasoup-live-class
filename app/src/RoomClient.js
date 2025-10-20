@@ -834,11 +834,16 @@ export default class RoomClient {
 			}
 
 			let codec;
+
 			let codecOptions = {
 				opusStereo: true,
 				opusDtx: true,
 				opusFec: true,
 				opusNack: true,
+			};
+
+			const headerExtensionOptions = {
+				absCaptureTime: true,
 			};
 
 			if (this._forcePCMA) {
@@ -856,6 +861,7 @@ export default class RoomClient {
 			this._micProducer = await this._sendTransport.produce({
 				track,
 				codecOptions,
+				headerExtensionOptions,
 				codec,
 				appData: {
 					source: 'audio',
@@ -994,8 +1000,13 @@ export default class RoomClient {
 
 			let encodings;
 			let codec;
+
 			const codecOptions = {
 				videoGoogleStartBitrate: 1000,
+			};
+
+			const headerExtensionOptions = {
+				absCaptureTime: true,
 			};
 
 			if (this._forceVP8) {
@@ -1085,6 +1096,7 @@ export default class RoomClient {
 				track,
 				encodings,
 				codecOptions,
+				headerExtensionOptions,
 				codec,
 				appData: {
 					source: 'video',
