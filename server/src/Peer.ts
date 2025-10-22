@@ -850,6 +850,8 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 				const producer = await transport.produce<ProducerAppData>({
 					kind,
 					rtpParameters,
+					// NOTE: For debugging.
+					enableMediasoupPacketIdHeaderExtension: true,
 					appData: {
 						peerId: this.id,
 						source,
