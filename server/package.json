@@ -53,20 +53,20 @@
 		"supports-color": "^10.2.2"
 	},
 	"devDependencies": {
-		"@eslint/js": "^9.38.0",
+		"@eslint/js": "^9.39.1",
 		"@types/debug": "^4.1.12",
 		"@types/express": "^5.0.5",
-		"@types/node": "^24.9.2",
+		"@types/node": "^24.10.1",
 		"@types/pidusage": "^2.0.5",
 		"@types/protoo-server": "^4.0.6",
-		"eslint": "^9.38.0",
+		"eslint": "^9.39.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-prettier": "^5.5.4",
-		"globals": "^16.4.0",
-		"nodemon": "^3.1.10",
+		"globals": "^16.5.0",
+		"nodemon": "^3.1.11",
 		"prettier": "^3.6.2",
 		"tsx": "^4.20.6",
 		"typescript": "^5.9.3",
-		"typescript-eslint": "^8.46.2"
+		"typescript-eslint": "^8.46.4"
 	}
 }
