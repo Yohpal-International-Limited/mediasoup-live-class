@@ -40,7 +40,7 @@
 	},
 	"dependencies": {
 		"debug": "^4.4.3",
-		"mediasoup-client": "^3.18.0",
+		"mediasoup-client": "^3.18.1",
 		"supports-color": "^10.2.2",
 		"undici": "^7.16.0"
 	},
@@ -52,10 +52,10 @@
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-prettier": "^5.5.4",
 		"globals": "^16.5.0",
-		"mediasoup-client": "^3.18.0",
+		"mediasoup-client": "^3.18.1",
 		"prettier": "^3.6.2",
 		"tsx": "^4.20.6",
 		"typescript": "^5.9.3",
-		"typescript-eslint": "^8.46.4"
+		"typescript-eslint": "^8.47.0"
 	}
 }
