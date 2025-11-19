@@ -1,5 +1,6 @@
 import protooClient from 'protoo-client';
 import * as mediasoupClient from 'mediasoup-client';
+import { AwaitQueue } from 'awaitqueue';
 import Logger from './Logger';
 import { getProtooUrl } from './urlFactory';
 import * as cookiesManager from './cookiesManager';
@@ -173,6 +174,9 @@ export default class RoomClient {
 		// @type {Number}
 		this._nextDataChannelTestNumber = 0;
 
+		// AwaitQueue to control received messages about Consumers and DataConsumers.
+		this._consumingAwaitQueue = new AwaitQueue();
+
 		if (externalVideo) {
 			this._externalVideo = document.createElement('video');
 
@@ -344,276 +348,280 @@ export default class RoomClient {
 
 			switch (request.method) {
 				case 'newConsumer': {
-					if (!this._consume) {
-						reject(403, 'I do not want to consume');
+					await this._consumingAwaitQueue.push(async () => {
+						if (!this._consume) {
+							reject(403, 'I do not want to consume');
 
-						break;
-					}
+							return;
+						}
 
-					const {
-						peerId,
-						// NOTE: We don't need this since we will use our recv transport
-						// anyway.
-						// transportId,
-						consumerId,
-						producerId,
-						kind,
-						rtpParameters,
-						type,
-						producerPaused,
-						consumerScore,
-						appData,
-					} = request.data;
-
-					try {
-						const consumer = await this._recvTransport.consume({
-							id: consumerId,
+						const {
+							peerId,
+							// NOTE: We don't need this since we will use our recv transport
+							// anyway.
+							// transportId,
+							consumerId,
 							producerId,
 							kind,
 							rtpParameters,
-							// NOTE: Force streamId to be same in mic and webcam and different
-							// in screen sharing so libwebrtc will just try to sync mic and
-							// webcam streams from the same remote peer.
-							streamId: `${peerId}-${appData.source === 'screensharing' ? 'screensharing' : 'audio-video'}`,
-							appData: { ...appData, peerId },
-						});
+							type,
+							producerPaused,
+							consumerScore,
+							appData,
+						} = request.data;
 
-						if (this._e2eKey && e2e.isSupported()) {
-							e2e.setupReceiverTransform(consumer.rtpReceiver);
-						}
+						try {
+							const consumer = await this._recvTransport.consume({
+								id: consumerId,
+								producerId,
+								kind,
+								rtpParameters,
+								// NOTE: Force streamId to be same in mic and webcam and different
+								// in screen sharing so libwebrtc will just try to sync mic and
+								// webcam streams from the same remote peer.
+								streamId: `${peerId}-${appData.source === 'screensharing' ? 'screensharing' : 'audio-video'}`,
+								appData: { ...appData, peerId },
+							});
 
-						// Store in the map.
-						this._consumers.set(consumer.id, consumer);
+							if (this._e2eKey && e2e.isSupported()) {
+								e2e.setupReceiverTransform(consumer.rtpReceiver);
+							}
 
-						consumer.on('transportclose', () => {
-							this._consumers.delete(consumer.id);
-						});
+							// Store in the map.
+							this._consumers.set(consumer.id, consumer);
 
-						const { spatialLayers, temporalLayers } =
-							mediasoupClient.parseScalabilityMode(
-								consumer.rtpParameters.encodings[0].scalabilityMode
+							consumer.on('transportclose', () => {
+								this._consumers.delete(consumer.id);
+							});
+
+							const { spatialLayers, temporalLayers } =
+								mediasoupClient.parseScalabilityMode(
+									consumer.rtpParameters.encodings[0].scalabilityMode
+								);
+
+							store.dispatch(
+								stateActions.addConsumer(
+									{
+										id: consumer.id,
+										type: type,
+										locallyPaused: false,
+										remotelyPaused: producerPaused,
+										rtpParameters: consumer.rtpParameters,
+										spatialLayers: spatialLayers,
+										temporalLayers: temporalLayers,
+										preferredSpatialLayer: spatialLayers - 1,
+										preferredTemporalLayer: temporalLayers - 1,
+										priority: 1,
+										codec:
+											consumer.rtpParameters.codecs[0].mimeType.split('/')[1],
+										track: consumer.track,
+									},
+									peerId
+								)
 							);
 
-						store.dispatch(
-							stateActions.addConsumer(
-								{
-									id: consumer.id,
-									type: type,
-									locallyPaused: false,
-									remotelyPaused: producerPaused,
-									rtpParameters: consumer.rtpParameters,
-									spatialLayers: spatialLayers,
-									temporalLayers: temporalLayers,
-									preferredSpatialLayer: spatialLayers - 1,
-									preferredTemporalLayer: temporalLayers - 1,
-									priority: 1,
-									codec:
-										consumer.rtpParameters.codecs[0].mimeType.split('/')[1],
-									track: consumer.track,
-								},
-								peerId
-							)
-						);
+							store.dispatch(
+								stateActions.setConsumerScore(consumerId, consumerScore)
+							);
 
-						store.dispatch(
-							stateActions.setConsumerScore(consumerId, consumerScore)
-						);
+							// We are ready. Answer the protoo request so the server will
+							// resume this Consumer (which was paused for now if video).
+							accept();
 
-						// We are ready. Answer the protoo request so the server will
-						// resume this Consumer (which was paused for now if video).
-						accept();
+							// If audio-only mode is enabled, pause it.
+							if (consumer.kind === 'video' && store.getState().me.audioOnly)
+								this._pauseConsumer(consumer);
+						} catch (error) {
+							logger.error('"newConsumer" request failed:%o', error);
 
-						// If audio-only mode is enabled, pause it.
-						if (consumer.kind === 'video' && store.getState().me.audioOnly)
-							this._pauseConsumer(consumer);
-					} catch (error) {
-						logger.error('"newConsumer" request failed:%o', error);
+							store.dispatch(
+								requestActions.notify({
+									type: 'error',
+									text: `Error creating a Consumer: ${error}`,
+								})
+							);
 
-						store.dispatch(
-							requestActions.notify({
-								type: 'error',
-								text: `Error creating a Consumer: ${error}`,
-							})
-						);
-
-						throw error;
-					}
+							throw error;
+						}
+					});
 
 					break;
 				}
 
 				case 'newDataConsumer': {
-					if (!this._consume) {
-						reject(403, 'I do not want to data consume');
+					await this._consumingAwaitQueue.push(async () => {
+						if (!this._consume) {
+							reject(403, 'I do not want to data consume');
 
-						break;
-					}
+							return;
+						}
 
-					if (!this._useDataChannel) {
-						reject(403, 'I do not want DataChannels');
+						if (!this._useDataChannel) {
+							reject(403, 'I do not want DataChannels');
 
-						break;
-					}
+							return;
+						}
 
-					const {
-						// NOTE: Undefined if bot.
-						peerId,
-						// NOTE: We don't need this since we will use our recv transport
-						// anyway.
-						// transportId,
-						dataConsumerId,
-						dataProducerId,
-						sctpStreamParameters,
-						label,
-						protocol,
-						appData,
-					} = request.data;
-
-					try {
-						const dataConsumer = await this._recvTransport.consumeData({
-							id: dataConsumerId,
+						const {
+							// NOTE: Undefined if bot.
+							peerId,
+							// NOTE: We don't need this since we will use our recv transport
+							// anyway.
+							// transportId,
+							dataConsumerId,
 							dataProducerId,
 							sctpStreamParameters,
 							label,
 							protocol,
-							appData: { ...appData, peerId },
-						});
+							appData,
+						} = request.data;
 
-						// Store in the map.
-						this._dataConsumers.set(dataConsumer.id, dataConsumer);
+						try {
+							const dataConsumer = await this._recvTransport.consumeData({
+								id: dataConsumerId,
+								dataProducerId,
+								sctpStreamParameters,
+								label,
+								protocol,
+								appData: { ...appData, peerId },
+							});
 
-						dataConsumer.on('transportclose', () => {
-							this._dataConsumers.delete(dataConsumer.id);
-						});
+							// Store in the map.
+							this._dataConsumers.set(dataConsumer.id, dataConsumer);
 
-						dataConsumer.on('open', () => {
-							logger.debug('DataConsumer "open" event');
-						});
+							dataConsumer.on('transportclose', () => {
+								this._dataConsumers.delete(dataConsumer.id);
+							});
 
-						dataConsumer.on('close', () => {
-							logger.warn('DataConsumer "close" event');
+							dataConsumer.on('open', () => {
+								logger.debug('DataConsumer "open" event');
+							});
 
-							this._dataConsumers.delete(dataConsumer.id);
-						});
+							dataConsumer.on('close', () => {
+								logger.warn('DataConsumer "close" event');
 
-						dataConsumer.on('error', error => {
-							logger.error('DataConsumer "error" event:%o', error);
+								this._dataConsumers.delete(dataConsumer.id);
+							});
 
-							store.dispatch(
-								requestActions.notify({
-									type: 'error',
-									text: `DataConsumer error: ${error}`,
-								})
-							);
-						});
+							dataConsumer.on('error', error => {
+								logger.error('DataConsumer "error" event:%o', error);
 
-						dataConsumer.on('message', message => {
-							logger.debug(
-								'DataConsumer "message" event [streamId:%d]',
-								dataConsumer.sctpStreamParameters.streamId
-							);
+								store.dispatch(
+									requestActions.notify({
+										type: 'error',
+										text: `DataConsumer error: ${error}`,
+									})
+								);
+							});
 
-							// TODO: For debugging.
-							window.DC_MESSAGE = message;
+							dataConsumer.on('message', message => {
+								logger.debug(
+									'DataConsumer "message" event [streamId:%d]',
+									dataConsumer.sctpStreamParameters.streamId
+								);
 
-							if (message instanceof ArrayBuffer) {
-								const view = new DataView(message);
-								const number = view.getUint32();
+								// TODO: For debugging.
+								window.DC_MESSAGE = message;
 
-								if (number == Math.pow(2, 32) - 1) {
-									logger.warn('dataChannelTest finished!');
+								if (message instanceof ArrayBuffer) {
+									const view = new DataView(message);
+									const number = view.getUint32();
 
-									this._nextDataChannelTestNumber = 0;
+									if (number == Math.pow(2, 32) - 1) {
+										logger.warn('dataChannelTest finished!');
+
+										this._nextDataChannelTestNumber = 0;
+
+										return;
+									}
+
+									if (number > this._nextDataChannelTestNumber) {
+										logger.warn(
+											'dataChannelTest: %s packets missing',
+											number - this._nextDataChannelTestNumber
+										);
+									}
+
+									this._nextDataChannelTestNumber = number + 1;
+
+									return;
+								} else if (typeof message !== 'string') {
+									logger.warn('ignoring DataConsumer "message" (not a string)');
 
 									return;
 								}
 
-								if (number > this._nextDataChannelTestNumber) {
-									logger.warn(
-										'dataChannelTest: %s packets missing',
-										number - this._nextDataChannelTestNumber
-									);
-								}
+								switch (dataConsumer.label) {
+									case 'chat': {
+										const { peers } = store.getState();
+										const peersArray = Object.keys(peers).map(
+											_peerId => peers[_peerId]
+										);
+										const sendingPeer = peersArray.find(peer =>
+											peer.dataConsumers.includes(dataConsumer.id)
+										);
 
-								this._nextDataChannelTestNumber = number + 1;
+										if (!sendingPeer) {
+											logger.warn('DataConsumer "message" from unknown peer');
 
-								return;
-							} else if (typeof message !== 'string') {
-								logger.warn('ignoring DataConsumer "message" (not a string)');
+											break;
+										}
 
-								return;
-							}
-
-							switch (dataConsumer.label) {
-								case 'chat': {
-									const { peers } = store.getState();
-									const peersArray = Object.keys(peers).map(
-										_peerId => peers[_peerId]
-									);
-									const sendingPeer = peersArray.find(peer =>
-										peer.dataConsumers.includes(dataConsumer.id)
-									);
-
-									if (!sendingPeer) {
-										logger.warn('DataConsumer "message" from unknown peer');
+										store.dispatch(
+											requestActions.notify({
+												title: `${sendingPeer.displayName} says:`,
+												text: message,
+												timeout: 5000,
+											})
+										);
 
 										break;
 									}
 
-									store.dispatch(
-										requestActions.notify({
-											title: `${sendingPeer.displayName} says:`,
-											text: message,
-											timeout: 5000,
-										})
-									);
+									case 'bot': {
+										store.dispatch(
+											requestActions.notify({
+												title: 'Message from Bot:',
+												text: message,
+												timeout: 5000,
+											})
+										);
 
-									break;
+										break;
+									}
 								}
+							});
 
-								case 'bot': {
-									store.dispatch(
-										requestActions.notify({
-											title: 'Message from Bot:',
-											text: message,
-											timeout: 5000,
-										})
-									);
+							// TODO: REMOVE
+							window.DC = dataConsumer;
 
-									break;
-								}
-							}
-						});
+							store.dispatch(
+								stateActions.addDataConsumer(
+									{
+										id: dataConsumer.id,
+										sctpStreamParameters: dataConsumer.sctpStreamParameters,
+										label: dataConsumer.label,
+										protocol: dataConsumer.protocol,
+									},
+									peerId
+								)
+							);
 
-						// TODO: REMOVE
-						window.DC = dataConsumer;
+							// We are ready. Answer the protoo request.
+							accept();
+						} catch (error) {
+							logger.error('"newDataConsumer" request failed:%o', error);
 
-						store.dispatch(
-							stateActions.addDataConsumer(
-								{
-									id: dataConsumer.id,
-									sctpStreamParameters: dataConsumer.sctpStreamParameters,
-									label: dataConsumer.label,
-									protocol: dataConsumer.protocol,
-								},
-								peerId
-							)
-						);
+							store.dispatch(
+								requestActions.notify({
+									type: 'error',
+									text: `Error creating a DataConsumer: ${error}`,
+								})
+							);
 
-						// We are ready. Answer the protoo request.
-						accept();
-					} catch (error) {
-						logger.error('"newDataConsumer" request failed:%o', error);
-
-						store.dispatch(
-							requestActions.notify({
-								type: 'error',
-								text: `Error creating a DataConsumer: ${error}`,
-							})
-						);
-
-						throw error;
-					}
+							throw error;
+						}
+					});
 
 					break;
 				}
@@ -694,86 +702,147 @@ export default class RoomClient {
 				}
 
 				case 'consumerClosed': {
-					const { consumerId } = notification.data;
-					const consumer = this._consumers.get(consumerId);
+					this._consumingAwaitQueue.push(async () => {
+						const { consumerId } = notification.data;
+						const consumer = this._consumers.get(consumerId);
 
-					if (!consumer) break;
+						if (!consumer) {
+							logger.warn(
+								`'consumerClosed' notification for unknown consumerId %o`,
+								consumerId
+							);
 
-					consumer.close();
-					this._consumers.delete(consumerId);
+							return;
+						}
 
-					const { peerId } = consumer.appData;
+						consumer.close();
+						this._consumers.delete(consumerId);
 
-					store.dispatch(stateActions.removeConsumer(consumerId, peerId));
+						const { peerId } = consumer.appData;
+
+						store.dispatch(stateActions.removeConsumer(consumerId, peerId));
+					});
 
 					break;
 				}
 
 				case 'consumerPaused': {
-					const { consumerId } = notification.data;
-					const consumer = this._consumers.get(consumerId);
+					this._consumingAwaitQueue.push(async () => {
+						const { consumerId } = notification.data;
+						const consumer = this._consumers.get(consumerId);
 
-					if (!consumer) break;
+						if (!consumer) {
+							logger.warn(
+								`'consumerPaused' notification for unknown consumerId %o`,
+								consumerId
+							);
 
-					consumer.pause();
+							return;
+						}
 
-					store.dispatch(stateActions.setConsumerPaused(consumerId, 'remote'));
+						consumer.pause();
+
+						store.dispatch(
+							stateActions.setConsumerPaused(consumerId, 'remote')
+						);
+					});
 
 					break;
 				}
 
 				case 'consumerResumed': {
-					const { consumerId } = notification.data;
-					const consumer = this._consumers.get(consumerId);
+					this._consumingAwaitQueue.push(async () => {
+						const { consumerId } = notification.data;
+						const consumer = this._consumers.get(consumerId);
 
-					if (!consumer) break;
+						if (!consumer) {
+							logger.warn(
+								`'consumerResumed' notification for unknown consumerId %o`,
+								consumerId
+							);
 
-					consumer.resume();
+							return;
+						}
 
-					store.dispatch(stateActions.setConsumerResumed(consumerId, 'remote'));
+						consumer.resume();
+
+						store.dispatch(
+							stateActions.setConsumerResumed(consumerId, 'remote')
+						);
+					});
 
 					break;
 				}
 
 				case 'consumerLayersChanged': {
-					const { consumerId, layers } = notification.data;
-					const consumer = this._consumers.get(consumerId);
+					this._consumingAwaitQueue.push(async () => {
+						const { consumerId, layers } = notification.data;
+						const consumer = this._consumers.get(consumerId);
 
-					if (!consumer) break;
+						if (!consumer) {
+							logger.warn(
+								`'consumerLayersChanged' notification for unknown consumerId %o`,
+								consumerId
+							);
 
-					store.dispatch(
-						stateActions.setConsumerCurrentLayers(
-							consumerId,
-							layers?.spatialLayer,
-							layers?.temporalLayer
-						)
-					);
+							return;
+						}
+
+						store.dispatch(
+							stateActions.setConsumerCurrentLayers(
+								consumerId,
+								layers?.spatialLayer,
+								layers?.temporalLayer
+							)
+						);
+					});
 
 					break;
 				}
 
 				case 'consumerScore': {
-					const { consumerId, score } = notification.data;
+					this._consumingAwaitQueue.push(async () => {
+						const { consumerId, score } = notification.data;
+						const consumer = this._consumers.get(consumerId);
 
-					store.dispatch(stateActions.setConsumerScore(consumerId, score));
+						if (!consumer) {
+							logger.warn(
+								`'consumerScore' notification for unknown consumerId %o`,
+								consumerId
+							);
+
+							return;
+						}
+
+						store.dispatch(stateActions.setConsumerScore(consumerId, score));
+					});
 
 					break;
 				}
 
 				case 'dataConsumerClosed': {
-					const { dataConsumerId } = notification.data;
-					const dataConsumer = this._dataConsumers.get(dataConsumerId);
+					this._consumingAwaitQueue.push(async () => {
+						const { dataConsumerId } = notification.data;
+						const dataConsumer = this._dataConsumers.get(dataConsumerId);
 
-					if (!dataConsumer) break;
+						if (!dataConsumer) {
+							logger.warn(
+								`'dataConsumerClosed' notification for unknown dataConsumerId %o`,
+								dataConsumerId
+							);
 
-					dataConsumer.close();
-					this._dataConsumers.delete(dataConsumerId);
+							return;
+						}
 
-					const { peerId } = dataConsumer.appData;
+						dataConsumer.close();
+						this._dataConsumers.delete(dataConsumerId);
 
-					store.dispatch(
-						stateActions.removeDataConsumer(dataConsumerId, peerId)
-					);
+						const { peerId } = dataConsumer.appData;
+
+						store.dispatch(
+							stateActions.removeDataConsumer(dataConsumerId, peerId)
+						);
+					});
 
 					break;
 				}

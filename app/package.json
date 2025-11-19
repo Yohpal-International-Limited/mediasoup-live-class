@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@babel/runtime": "7.26.10",
+    "awaitqueue": "^3.3.0",
     "bowser": "2.12.1",
     "classnames": "2.5.1",
     "clipboard-copy": "3.1.0",
