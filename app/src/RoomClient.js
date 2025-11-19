@@ -2347,8 +2347,9 @@ export default class RoomClient {
 					(this._useWebcam === undefined &&
 						(!devicesCookie || devicesCookie.webcamEnabled)) ||
 					this._externalVideo
-				)
+				) {
 					this.enableWebcam();
+				}
 
 				if (this._useDataChannel) {
 					this.enableChatDataProducer();
