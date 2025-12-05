@@ -45,8 +45,8 @@
 		"awaitqueue": "^3.3.0",
 		"body-parser": "^2.2.1",
 		"debug": "^4.4.3",
-		"express": "^5.2.0",
-		"mediasoup": "^3.19.12",
+		"express": "^5.2.1",
+		"mediasoup": "^3.19.13",
 		"picocolors": "^1.1.1",
 		"pidusage": "^4.0.1",
 		"protoo-server": "^4.0.7",
@@ -55,7 +55,7 @@
 	"devDependencies": {
 		"@eslint/js": "^9.39.1",
 		"@types/debug": "^4.1.12",
-		"@types/express": "^5.0.5",
+		"@types/express": "^5.0.6",
 		"@types/node": "^24.10.1",
 		"@types/pidusage": "^2.0.5",
 		"@types/protoo-server": "^4.0.6",
@@ -64,9 +64,9 @@
 		"eslint-plugin-prettier": "^5.5.4",
 		"globals": "^16.5.0",
 		"nodemon": "^3.1.11",
-		"prettier": "^3.6.2",
-		"tsx": "^4.20.6",
+		"prettier": "^3.7.4",
+		"tsx": "^4.21.0",
 		"typescript": "^5.9.3",
-		"typescript-eslint": "^8.48.0"
+		"typescript-eslint": "^8.48.1"
 	}
 }
