@@ -917,7 +917,8 @@ export default class RoomClient {
 			};
 
 			const headerExtensionOptions = {
-				absCaptureTime: true,
+				// TODO: Disabled due to a bug: https://github.com/versatica/mediasoup-client/issues/354
+				// absCaptureTime: true,
 			};
 
 			if (this._forcePCMA) {
@@ -1080,7 +1081,8 @@ export default class RoomClient {
 			};
 
 			const headerExtensionOptions = {
-				absCaptureTime: true,
+				// TODO: Disabled due to a bug: https://github.com/versatica/mediasoup-client/issues/354
+				// absCaptureTime: true,
 			};
 
 			if (this._forceVP8) {
