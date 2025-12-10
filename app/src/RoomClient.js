@@ -49,7 +49,8 @@ export default class RoomClient {
 		enableSharingLayers,
 		webcamScalabilityMode,
 		sharingScalabilityMode,
-		numSimulcastStreams,
+		numWebcamSimulcastStreams,
+		numSharingSimulcastStreams,
 		preferLocalCodecsOrder,
 		forcePCMA,
 		forceVP8,
@@ -152,9 +153,13 @@ export default class RoomClient {
 		// @type {String}
 		this._sharingScalabilityMode = sharingScalabilityMode;
 
-		// Number of simuclast streams for webcam and sharing.
+		// Number of simuclast streams for webcam.
 		// @type {Number}
-		this._numSimulcastStreams = numSimulcastStreams;
+		this._numWebcamSimulcastStreams = numWebcamSimulcastStreams;
+
+		// Number of simuclast streams for screen sharing.
+		// @type {Number}
+		this._numSharingSimulcastStreams = numSharingSimulcastStreams;
 
 		// External video.
 		// @type {HTMLVideoElement}
@@ -1143,7 +1148,7 @@ export default class RoomClient {
 						},
 					];
 
-					if (this._numSimulcastStreams > 1) {
+					if (this._numWebcamSimulcastStreams > 1) {
 						encodings.unshift({
 							scaleResolutionDownBy: 2,
 							maxBitrate: 1000000,
@@ -1151,7 +1156,7 @@ export default class RoomClient {
 						});
 					}
 
-					if (this._numSimulcastStreams > 2) {
+					if (this._numWebcamSimulcastStreams > 2) {
 						encodings.unshift({
 							scaleResolutionDownBy: 4,
 							maxBitrate: 500000,
@@ -1462,7 +1467,7 @@ export default class RoomClient {
 						},
 					];
 
-					if (this._numSimulcastStreams > 1) {
+					if (this._numSharingSimulcastStreams > 1) {
 						encodings.unshift({
 							scaleResolutionDownBy: 2,
 							maxBitrate: 1000000,
@@ -1471,7 +1476,7 @@ export default class RoomClient {
 						});
 					}
 
-					if (this._numSimulcastStreams > 2) {
+					if (this._numSharingSimulcastStreams > 2) {
 						encodings.unshift({
 							scaleResolutionDownBy: 4,
 							maxBitrate: 500000,
