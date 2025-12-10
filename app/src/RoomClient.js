@@ -1080,11 +1080,6 @@ export default class RoomClient {
 				videoGoogleStartBitrate: 1000,
 			};
 
-			const headerExtensionOptions = {
-				// TODO: Disabled due to a bug: https://github.com/versatica/mediasoup-client/issues/354
-				// absCaptureTime: true,
-			};
-
 			if (this._forceVP8) {
 				codec = this._mediasoupDevice.rtpCapabilities.codecs.find(
 					c => c.mimeType.toLowerCase() === 'video/vp8'
@@ -1172,7 +1167,6 @@ export default class RoomClient {
 				track,
 				encodings,
 				codecOptions,
-				headerExtensionOptions,
 				codec,
 				appData: {
 					source: 'video',
