@@ -46,7 +46,7 @@
 		"body-parser": "^2.2.1",
 		"debug": "^4.4.3",
 		"express": "^5.2.1",
-		"mediasoup": "^3.19.13",
+		"mediasoup": "^3.19.14",
 		"picocolors": "^1.1.1",
 		"pidusage": "^4.0.1",
 		"protoo-server": "^4.0.7",
@@ -67,6 +67,6 @@
 		"prettier": "^3.7.4",
 		"tsx": "^4.21.0",
 		"typescript": "^5.9.3",
-		"typescript-eslint": "^8.48.1"
+		"typescript-eslint": "^8.49.0"
 	}
 }
