@@ -53,13 +53,13 @@
 		"supports-color": "^10.2.2"
 	},
 	"devDependencies": {
-		"@eslint/js": "^9.39.1",
+		"@eslint/js": "^9.39.2",
 		"@types/debug": "^4.1.12",
 		"@types/express": "^5.0.6",
 		"@types/node": "^24.10.1",
 		"@types/pidusage": "^2.0.5",
 		"@types/protoo-server": "^4.0.6",
-		"eslint": "^9.39.1",
+		"eslint": "^9.39.2",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-prettier": "^5.5.4",
 		"globals": "^16.5.0",
@@ -67,6 +67,6 @@
 		"prettier": "^3.7.4",
 		"tsx": "^4.21.0",
 		"typescript": "^5.9.3",
-		"typescript-eslint": "^8.49.0"
+		"typescript-eslint": "^8.50.0"
 	}
 }
