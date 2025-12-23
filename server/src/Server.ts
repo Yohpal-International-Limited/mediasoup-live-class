@@ -47,6 +47,11 @@ type WorkersAndWebRtcServers = Map<
 	}
 >;
 
+type RoomData = {
+	queue: AwaitQueue;
+	room?: Room;
+};
+
 export type ServerObserverEvents = {
 	/**
 	 * Emitted when a new Server is created.
@@ -74,14 +79,13 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 		new EnhancedEventEmitter();
 
 	readonly #config: ServerConfig;
-	readonly #roomCreationAwaitQueue: AwaitQueue = new AwaitQueue();
-	readonly #rooms: Map<string, Room> = new Map();
 	readonly #httpServer: https.Server | http.Server;
 	readonly #httpConnections: Set<net.Socket> = new Set();
 	readonly #wsServer: WsServer;
 	readonly #apiServer: ApiServer;
 	readonly #workersAndWebRtcServers: WorkersAndWebRtcServers = new Map();
 	#nextWorkerIdx: number = 0;
+	readonly #roomQueues: Map<RoomId, RoomData> = new Map();
 	readonly #networkThrottleSecret?: string;
 	#networkThrottleEnabled: boolean = false;
 	#networkThrottleEnabledByRoomId?: RoomId;
@@ -272,10 +276,9 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 
 		this.#closed = true;
 
-		this.#roomCreationAwaitQueue.stop();
-
-		for (const room of this.#rooms.values()) {
-			room.close();
+		for (const { queue, room } of this.#roomQueues.values()) {
+			queue.stop();
+			room?.close();
 		}
 
 		for (const { worker } of this.#workersAndWebRtcServers.values()) {
@@ -305,8 +308,12 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 			createdAt: this.#createdAt,
 			numWorkers: this.#workersAndWebRtcServers.size,
 			networkThrottleEnabled: this.#networkThrottleEnabled,
-			numRooms: this.#rooms.size,
-			rooms: Array.from(this.#rooms.values()).map(room => room.serialize()),
+			numRooms: this.#roomQueues.size,
+			rooms: Array.from(this.#roomQueues.values())
+				.filter(({ room }) => room !== undefined)
+				// NOTE: TypeScript is not smart to know that `room` here is guaranteed
+				// to exist.
+				.map(({ room }) => room!.serialize()),
 		};
 	}
 
@@ -332,13 +339,28 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 			);
 		}
 
+		let roomData = this.#roomQueues.get(roomId);
+
+		if (!roomData) {
+			roomData = {
+				queue: new AwaitQueue(),
+				room: undefined,
+			};
+
+			this.#roomQueues.set(roomId, roomData);
+		}
+
 		// Enqueue it to avoid race conditions when multiple users join at the same
 		// time requesting the same `roomId`.
-		return this.#roomCreationAwaitQueue.push<Room>(async () => {
-			let room = this.#rooms.get(roomId);
+		return roomData.queue.push<Room>(async () => {
+			// Verify that the room was not removed just before this task execution
+			// begins.
+			if (!this.#roomQueues.get(roomId)) {
+				throw new InvalidStateError(`Room with id '${roomId}' has been closed`);
+			}
 
-			if (room) {
-				return room;
+			if (roomData.room) {
+				return roomData.room;
 			}
 
 			logger.info(
@@ -370,7 +392,7 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 					})
 				: producerRouter;
 
-			room = await Room.create({
+			const room = await Room.create({
 				roomId,
 				consumerReplicas,
 				usePipeTransports,
@@ -381,7 +403,7 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 				consumerWebRtcServer,
 			});
 
-			this.#rooms.set(room.id, room);
+			roomData.room = room;
 
 			this.handleRoom(room);
 
@@ -578,7 +600,7 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 
 	private handleApiServer(): void {
 		this.#apiServer.on('get-room', ({ roomId }, callback, errback) => {
-			const room = this.#rooms.get(roomId);
+			const room = this.#roomQueues.get(roomId)?.room;
 
 			if (room) {
 				callback(room);
@@ -590,7 +612,13 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 
 	private handleRoom(room: Room): void {
 		room.on('closed', () => {
-			this.#rooms.delete(room.id);
+			const roomData = this.#roomQueues.get(room.id);
+
+			if (roomData) {
+				roomData.room = undefined;
+			}
+
+			this.#roomQueues.delete(room.id);
 
 			if (room.id === this.#networkThrottleEnabledByRoomId) {
 				logger.info(
