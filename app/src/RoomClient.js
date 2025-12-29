@@ -8,10 +8,17 @@ import * as requestActions from './redux/requestActions';
 import * as stateActions from './redux/stateActions';
 import * as e2e from './e2e';
 
-const VIDEO_CONSTRAINS = {
+const WEBCAM_VIDEO_CONSTRAINS = {
 	qvga: { width: { ideal: 320 }, height: { ideal: 240 } },
 	vga: { width: { ideal: 640 }, height: { ideal: 480 } },
 	hd: { width: { ideal: 1280 }, height: { ideal: 720 } },
+};
+
+const SCREEN_SHARING_VIDEO_CONSTRAINS = {
+	qvga: { width: { ideal: 320 }, height: { ideal: 240 } },
+	vga: { width: { ideal: 640 }, height: { ideal: 480 } },
+	hd: { width: { ideal: 1280 }, height: { ideal: 720 } },
+	'4k': { width: { ideal: 3840 }, height: { ideal: 2160 } },
 };
 
 const PC_PROPRIETARY_CONSTRAINTS = {
@@ -51,6 +58,8 @@ export default class RoomClient {
 		sharingScalabilityMode,
 		numWebcamSimulcastStreams,
 		numSharingSimulcastStreams,
+		videoContentHint,
+		screenSharing4K,
 		preferLocalCodecsOrder,
 		forcePCMA,
 		forceVP8,
@@ -160,6 +169,15 @@ export default class RoomClient {
 		// Number of simuclast streams for screen sharing.
 		// @type {Number}
 		this._numSharingSimulcastStreams = numSharingSimulcastStreams;
+
+		// Value to apply to `track.contentHint` in produced video tracks (for
+		// webcam and screen sharing).
+		//
+		// @see https://www.w3.org/TR/mst-content-hint/#video-content-hints
+		this._videoContentHint = videoContentHint || '';
+
+		// Use 4K for screen sharing video.
+		this._screenSharing4K = Boolean(screenSharing4K);
 
 		// External video.
 		// @type {HTMLVideoElement}
@@ -894,7 +912,9 @@ export default class RoomClient {
 
 		try {
 			if (!this._externalVideo) {
-				logger.debug('enableMic() | calling getUserMedia()');
+				logger.debug(
+					'enableMic() | calling navigator.mediaDevices.getUserMedia()'
+				);
 
 				const stream = await navigator.mediaDevices.getUserMedia({
 					audio: true,
@@ -1052,14 +1072,18 @@ export default class RoomClient {
 
 				const { resolution } = this._webcam;
 
-				if (!device) throw new Error('no webcam devices');
+				if (!device) {
+					throw new Error('no webcam devices');
+				}
 
-				logger.debug('enableWebcam() | calling getUserMedia()');
+				logger.debug(
+					'enableWebcam() | calling navigator.mediaDevices.getUserMedia()'
+				);
 
 				const stream = await navigator.mediaDevices.getUserMedia({
 					video: {
 						deviceId: { ideal: device.deviceId },
-						...VIDEO_CONSTRAINS[resolution],
+						...WEBCAM_VIDEO_CONSTRAINS[resolution],
 					},
 				});
 
@@ -1164,6 +1188,15 @@ export default class RoomClient {
 						});
 					}
 				}
+			}
+
+			if (this._videoContentHint) {
+				logger.debug(
+					'enableWebcam() | applying track.contentHint = %o',
+					this._videoContentHint
+				);
+
+				track.contentHint = this._videoContentHint;
 			}
 
 			this._webcamProducer = await this._sendTransport.produce({
@@ -1274,16 +1307,27 @@ export default class RoomClient {
 			// having both front/back cameras open at the same time).
 			this._webcamProducer.track.stop();
 
-			logger.debug('changeWebcam() | calling getUserMedia()');
+			logger.debug(
+				'changeWebcam() | calling navigator.mediaDevices.getUserMedia()'
+			);
 
 			const stream = await navigator.mediaDevices.getUserMedia({
 				video: {
 					deviceId: { exact: this._webcam.device.deviceId },
-					...VIDEO_CONSTRAINS[this._webcam.resolution],
+					...WEBCAM_VIDEO_CONSTRAINS[this._webcam.resolution],
 				},
 			});
 
 			const track = stream.getVideoTracks()[0];
+
+			if (this._videoContentHint) {
+				logger.debug(
+					'changeWebcam() | applying track.contentHint = %o',
+					this._videoContentHint
+				);
+
+				track.contentHint = this._videoContentHint;
+			}
 
 			await this._webcamProducer.replaceTrack({ track });
 
@@ -1324,16 +1368,27 @@ export default class RoomClient {
 					this._webcam.resolution = 'hd';
 			}
 
-			logger.debug('changeWebcamResolution() | calling getUserMedia()');
+			logger.debug(
+				'changeWebcamResolution() | calling navigator.mediaDevices.getUserMedia()'
+			);
 
 			const stream = await navigator.mediaDevices.getUserMedia({
 				video: {
 					deviceId: { exact: this._webcam.device.deviceId },
-					...VIDEO_CONSTRAINS[this._webcam.resolution],
+					...WEBCAM_VIDEO_CONSTRAINS[this._webcam.resolution],
 				},
 			});
 
 			const track = stream.getVideoTracks()[0];
+
+			if (this._videoContentHint) {
+				logger.debug(
+					'changeWebcamResolution() | applying track.contentHint = %o',
+					this._videoContentHint
+				);
+
+				track.contentHint = this._videoContentHint;
+			}
 
 			await this._webcamProducer.replaceTrack({ track });
 
@@ -1371,7 +1426,12 @@ export default class RoomClient {
 		store.dispatch(stateActions.setShareInProgress(true));
 
 		try {
-			logger.debug('enableShare() | calling getUserMedia()');
+			const resolution = this._screenSharing4K ? '4k' : 'hd';
+
+			logger.debug(
+				'enableShare() | calling navigator.mediaDevices.getDisplayMedia() with resolution %o',
+				resolution
+			);
 
 			const stream = await navigator.mediaDevices.getDisplayMedia({
 				audio: false,
@@ -1379,8 +1439,7 @@ export default class RoomClient {
 					displaySurface: 'monitor',
 					logicalSurface: true,
 					cursor: true,
-					width: { max: 1920 },
-					height: { max: 1080 },
+					...SCREEN_SHARING_VIDEO_CONSTRAINS[resolution],
 					frameRate: { max: 30 },
 				},
 			});
@@ -1485,6 +1544,15 @@ export default class RoomClient {
 						});
 					}
 				}
+			}
+
+			if (this._videoContentHint) {
+				logger.debug(
+					'enableShare() | applying track.contentHint = %o',
+					this._videoContentHint
+				);
+
+				track.contentHint = this._videoContentHint;
 			}
 
 			this._shareProducer = await this._sendTransport.produce({
@@ -2456,7 +2524,9 @@ export default class RoomClient {
 		// Reset the list.
 		this._webcams = new Map();
 
-		logger.debug('_updateWebcams() | calling enumerateDevices()');
+		logger.debug(
+			'_updateWebcams() | calling navigator.mediaDevices.enumerateDevices()'
+		);
 
 		const devices = await navigator.mediaDevices.enumerateDevices();
 

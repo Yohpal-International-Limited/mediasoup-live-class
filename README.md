@@ -38,6 +38,8 @@ By adding query parameters into the URL you can set certain settings of the appl
 | `sharingScalabilityMode` | String | `scalabilityMode` for screen sharing | 'L1T3' for VP8/H264 (in each simulcast encoding), 'L3T3' for VP9 |
 | `numWebcamSimulcastStreams` | Number | Number of streams for simulcast in webcam | 3 |
 | `numSharingSimulcastStreams` | Number | Number of streams for simulcast in screen sharing | 3 |
+| `videoContentHint`      | String  | Value to apply to [track.contentHint](https://www.w3.org/TR/mst-content-hint/#video-content-hints) in produced video tracks (for webcam and screen sharing) | '' |
+| `screenSharing4K`  | Boolean | Use 4K resolution for screen sharing | `false` |
 | `info`             | Boolean | Display detailed information about media transmission over each peer | `false` |
 | `stats`            | Boolean | Display detailed information about WebRTC stats | `false` |
 | `faceDetection`    | Boolean | Run face detection | `false` |

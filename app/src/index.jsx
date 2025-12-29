@@ -92,6 +92,8 @@ async function run() {
 	const numSharingSimulcastStreams = urlParser.query.numSharingSimulcastStreams
 		? Number(urlParser.query.numSharingSimulcastStreams)
 		: 3;
+	const videoContentHint = urlParser.query.videoContentHint;
+	const screenSharing4K = urlParser.query.screenSharing4K === 'true';
 	const info = urlParser.query.info === 'true';
 	const stats = urlParser.query.stats === 'true';
 	const faceDetection = urlParser.query.faceDetection === 'true';
@@ -149,6 +151,8 @@ async function run() {
 			case 'sharingScalabilityMode':
 			case 'numWebcamSimulcastStreams':
 			case 'numSharingSimulcastStreams':
+			case 'videoContentHint':
+			case 'screenSharing4K':
 			case 'info':
 			case 'stats':
 			case 'faceDetection':
@@ -216,6 +220,8 @@ async function run() {
 		sharingScalabilityMode,
 		numWebcamSimulcastStreams,
 		numSharingSimulcastStreams,
+		videoContentHint,
+		screenSharing4K,
 		externalVideo,
 		e2eKey,
 		consumerReplicas,
