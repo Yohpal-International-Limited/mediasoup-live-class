@@ -109,7 +109,7 @@ export default class PeerView extends React.Component {
 							onClick={() => onStatsClick(peer.id)}
 						/>
 
-						{!isMe && (
+						{!isMe && videoConsumerId && (
 							<div
 								className={classnames('icon', 'fullscreen')}
 								onClick={() => this._videoElemRef.current?.requestFullscreen()}
