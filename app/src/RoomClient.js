@@ -1493,6 +1493,7 @@ export default class RoomClient {
 				}
 			}
 
+			// Simulcast or SVC enabled.
 			if (this._enableSharingLayers) {
 				// If VP9 is the only available video codec then use SVC.
 				const firstVideoCodec =
@@ -1544,6 +1545,16 @@ export default class RoomClient {
 						});
 					}
 				}
+			}
+			// No simulcast or SVC enabled.
+			else {
+				encodings = [
+					{
+						scaleResolutionDownBy: 1,
+						maxBitrate: 5000000,
+						dtx: true,
+					},
+				];
 			}
 
 			if (this._videoContentHint) {
