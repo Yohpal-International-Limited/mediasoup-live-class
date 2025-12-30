@@ -1440,7 +1440,7 @@ export default class RoomClient {
 					logicalSurface: true,
 					cursor: true,
 					...SCREEN_SHARING_VIDEO_CONSTRAINS[resolution],
-					frameRate: { max: 30 },
+					frameRate: { ideal: 30 },
 				},
 			});
 
