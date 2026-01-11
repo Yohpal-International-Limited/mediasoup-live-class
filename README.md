@@ -1,5 +1,7 @@
 # mediasoup-demo v3
 
+[![][github-actions-shield-mediasoup-demo-server]][github-actions-mediasoup-demo-server]
+
 A demo application of [mediasoup](https://mediasoup.org).
 
 Try it online at https://v3demo.mediasoup.org
@@ -79,3 +81,5 @@ npm install --legacy-peer-deps
 
 [ISC](./LICENSE)
 
+[github-actions-shield-mediasoup-demo-server]: https://github.com/versatica/mediasoup-demo/actions/workflows/mediasoup-demo-server.yaml/badge.svg
+[github-actions-mediasoup-demo-server]: https://github.com/versatica/mediasoup-demo/actions/workflows/mediasoup-demo-server.yaml
