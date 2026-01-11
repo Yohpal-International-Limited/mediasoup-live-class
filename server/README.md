@@ -1,5 +1,7 @@
 # mediasoup-demo-server
 
+[![][github-actions-shield-mediasoup-demo-server]][github-actions-mediasoup-demo-server]
+
 mediasoup-demo SFU server written in TypeScript.
 
 Try it at [v3demo.mediasoup.org](https://v3demo.mediasoup.org).
@@ -141,3 +143,6 @@ You can support **mediasoup** by [sponsoring](https://mediasoup.org/sponsor) it.
 ## License
 
 [ISC](../LICENSE)
+
+[github-actions-shield-mediasoup-demo-server]: https://github.com/versatica/mediasoup-demo/actions/workflows/mediasoup-demo-server.yaml/badge.svg
+[github-actions-mediasoup-demo-server]: https://github.com/versatica/mediasoup-demo/actions/workflows/mediasoup-demo-server.yaml
