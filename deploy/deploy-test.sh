@@ -17,7 +17,8 @@ fi
 
 if [ "$1" == "" ] || [ "$1" == "web" ]; then
 	cd app/
-	npm run build
+	# NOTE: Use `build:local` task which uses the local mediasoup-client as it is.
+	npm run build:local
 	rm -rf ../server/public
 	mv dist ../server/public
 	cd ../
