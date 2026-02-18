@@ -40,22 +40,22 @@
 	},
 	"dependencies": {
 		"debug": "^4.4.3",
-		"mediasoup-client": "^3.18.1",
+		"mediasoup-client": "^3.18.7",
 		"supports-color": "^10.2.2",
-		"undici": "^7.18.2"
+		"undici": "^7.22.0"
 	},
 	"devDependencies": {
-		"@eslint/js": "^9.39.1",
+		"@eslint/js": "^10.0.1",
 		"@types/debug": "^4.1.12",
 		"@types/node": "^24.10.1",
-		"eslint": "^9.39.1",
+		"eslint": "^10.0.0",
 		"eslint-config-prettier": "^10.1.8",
-		"eslint-plugin-prettier": "^5.5.4",
-		"globals": "^16.5.0",
-		"mediasoup-client": "^3.18.1",
-		"prettier": "^3.6.2",
-		"tsx": "^4.20.6",
+		"eslint-plugin-prettier": "^5.5.5",
+		"globals": "^17.3.0",
+		"mediasoup-client": "^3.18.7",
+		"prettier": "^3.8.1",
+		"tsx": "^4.21.0",
 		"typescript": "^5.9.3",
-		"typescript-eslint": "^8.47.0"
+		"typescript-eslint": "^8.56.0"
 	}
 }

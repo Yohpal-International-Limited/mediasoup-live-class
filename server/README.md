@@ -144,5 +144,5 @@ You can support **mediasoup** by [sponsoring](https://mediasoup.org/sponsor) it.
 
 [ISC](../LICENSE)
 
-[github-actions-shield-mediasoup-demo-server]: https://github.com/versatica/mediasoup-demo/actions/workflows/mediasoup-demo-server.yaml/badge.svg
-[github-actions-mediasoup-demo-server]: https://github.com/versatica/mediasoup-demo/actions/workflows/mediasoup-demo-server.yaml
+[github-actions-shield-mediasoup-demo-server]: https://github.com/versatica/mediasoup-demo/actions/workflows/mediasoup-demo-server.yaml/badge.svg?branch=v3
+[github-actions-mediasoup-demo-server]: https://github.com/versatica/mediasoup-demo/actions/workflows/mediasoup-demo-server.yaml?query=branch%3Av3

@@ -51,6 +51,9 @@ jobs:
       - name: npm ci --prefix server --foreground-scripts
         run: npm ci --prefix server --foreground-scripts
 
+      - name: npm audit --omit dev --prefix server
+        run: npm audit --omit dev --prefix server
+
       - name: npm run lint --prefix server
         run: npm run lint --prefix server
 
