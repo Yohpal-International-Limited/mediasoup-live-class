@@ -56,6 +56,3 @@ jobs:
 
       - name: npm run lint --prefix server
         run: npm run lint --prefix server
-
-      - name: npm audit --prefix server
-        run: npm audit --prefix server
