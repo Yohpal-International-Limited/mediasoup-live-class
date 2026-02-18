@@ -31,16 +31,10 @@ type BroadcasterConstructorOptions = {
 };
 
 export class Broadcaster {
-	// TODO: TMP
-	// eslint-disable-next-line no-unused-private-class-members
 	readonly #baseUrl: string;
 	readonly #roomId: RoomId;
 	readonly #peerId: PeerId;
-	// TODO: TMP
-	// eslint-disable-next-line no-unused-private-class-members
 	readonly #displayName: string;
-	// TODO: TMP
-	// eslint-disable-next-line no-unused-private-class-members
 	readonly #device: PeerDevice;
 	readonly #apiClient: ApiClient;
 	readonly #routerRtpCapabilities: mediasoupTypes.RtpCapabilities;
