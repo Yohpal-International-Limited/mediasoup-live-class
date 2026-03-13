@@ -1007,6 +1007,18 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 				this.emit('disconnected');
 			}
 		});
+
+		transport.on('sctpstatechange', sctpState => {
+			if (sctpState === 'failed' || sctpState === 'closed') {
+				this.#logger.warn(
+					`${direction} WebRtcTransport SCTP state changed to %o, closing`,
+					sctpState
+				);
+
+				this.close();
+				this.emit('disconnected');
+			}
+		});
 	}
 
 	private handleProducer(
