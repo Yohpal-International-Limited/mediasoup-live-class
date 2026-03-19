@@ -987,8 +987,7 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 		transport.on('icestatechange', iceState => {
 			if (iceState === 'disconnected' || iceState === 'closed') {
 				this.#logger.warn(
-					`${direction} WebRtcTransport ICE state changed to %o, closing`,
-					iceState
+					`${direction} WebRtcTransport ICE state changed to "${iceState}", closing`
 				);
 
 				this.close();
@@ -999,8 +998,7 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 		transport.on('dtlsstatechange', dtlsState => {
 			if (dtlsState === 'failed' || dtlsState === 'closed') {
 				this.#logger.warn(
-					`${direction} WebRtcTransport DTLS state changed to %o, closing`,
-					dtlsState
+					`${direction} WebRtcTransport DTLS state changed to "${dtlsState}", closing`
 				);
 
 				this.close();
@@ -1011,8 +1009,7 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 		transport.on('sctpstatechange', sctpState => {
 			if (sctpState === 'failed' || sctpState === 'closed') {
 				this.#logger.warn(
-					`${direction} WebRtcTransport SCTP state changed to %o, closing`,
-					sctpState
+					`${direction} WebRtcTransport SCTP state changed to "${sctpState}", closing`
 				);
 
 				this.close();
