@@ -49,17 +49,17 @@
 		"mediasoup": "^3.19.18",
 		"picocolors": "^1.1.1",
 		"pidusage": "^4.0.1",
-		"protoo-server": "^4.0.7",
+		"protoo-server": "^4.0.8",
 		"supports-color": "^10.2.2"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
-		"@types/debug": "^4.1.12",
+		"@types/debug": "^4.1.13",
 		"@types/express": "^5.0.6",
 		"@types/node": "^24.10.1",
 		"@types/pidusage": "^2.0.5",
 		"@types/protoo-server": "^4.0.6",
-		"eslint": "^10.0.3",
+		"eslint": "^10.1.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-prettier": "^5.5.5",
 		"globals": "^17.4.0",
@@ -67,6 +67,6 @@
 		"prettier": "^3.8.1",
 		"tsx": "^4.21.0",
 		"typescript": "^5.9.3",
-		"typescript-eslint": "^8.57.0"
+		"typescript-eslint": "^8.57.1"
 	}
 }
