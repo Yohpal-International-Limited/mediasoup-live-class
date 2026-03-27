@@ -342,15 +342,15 @@ export default class RoomClient {
 			);
 
 			// Close mediasoup Transports.
-			if (this._sendTransport) {
-				this._sendTransport.close();
-				this._sendTransport = null;
-			}
+			// if (this._sendTransport) {
+			// 	this._sendTransport.close();
+			// 	this._sendTransport = null;
+			// }
 
-			if (this._recvTransport) {
-				this._recvTransport.close();
-				this._recvTransport = null;
-			}
+			// if (this._recvTransport) {
+			// 	this._recvTransport.close();
+			// 	this._recvTransport = null;
+			// }
 
 			store.dispatch(stateActions.setRoomState('closed'));
 		});
@@ -358,7 +358,7 @@ export default class RoomClient {
 		this._protoo.on('close', () => {
 			if (this._closed) return;
 
-			this.close();
+			// this.close();
 		});
 
 		// eslint-disable-next-line no-unused-vars
