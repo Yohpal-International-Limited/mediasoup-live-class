@@ -149,11 +149,7 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 
 			for (let idx = 0; idx < numWorkers; ++idx) {
 				const worker = await mediasoup.createWorker<WorkerAppData>({
-					dtlsCertificateFile: workerSettings.dtlsCertificateFile,
-					dtlsPrivateKeyFile: workerSettings.dtlsPrivateKeyFile,
-					logLevel: workerSettings.logLevel,
-					logTags: workerSettings.logTags,
-					disableLiburing: workerSettings.disableLiburing,
+					...workerSettings,
 					appData: {
 						idx,
 					},
