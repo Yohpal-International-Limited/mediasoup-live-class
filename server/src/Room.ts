@@ -536,7 +536,14 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 								webRtcServer: mediasoupWebRtcServer,
 								iceConsentTimeout: 20,
 								enableSctp: Boolean(sctpCapabilities),
-								numSctpStreams: sctpCapabilities?.numStreams,
+								// OS and MIS given to the server transport must be the reversed OS and MIS
+								// of the SCTP capabilities of the client.
+								numSctpStreams: sctpCapabilities
+									? {
+											OS: sctpCapabilities.numStreams.MIS,
+											MIS: sctpCapabilities.numStreams.OS,
+										}
+									: undefined,
 								appData: { direction },
 							}
 						);
