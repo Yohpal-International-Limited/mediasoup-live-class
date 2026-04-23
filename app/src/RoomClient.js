@@ -509,6 +509,22 @@ export default class RoomClient {
 								appData: { ...appData, peerId },
 							});
 
+							switch (appData.channel) {
+								case 'chat': {
+									// TODO: For debugging.
+									window.CHAT_DATA_CONSUMER = dataConsumer;
+
+									break;
+								}
+
+								case 'bot': {
+									// TODO: For debugging.
+									window.BOT_DATA_CONSUMER = dataConsumer;
+
+									break;
+								}
+							}
+
 							// Store in the map.
 							this._dataConsumers.set(dataConsumer.id, dataConsumer);
 
@@ -542,9 +558,6 @@ export default class RoomClient {
 									'DataConsumer "message" event [streamId:%d]',
 									dataConsumer.sctpStreamParameters.streamId
 								);
-
-								// TODO: For debugging.
-								window.DC_MESSAGE = message;
 
 								if (message instanceof ArrayBuffer) {
 									const view = new DataView(message);
@@ -614,9 +627,6 @@ export default class RoomClient {
 									}
 								}
 							});
-
-							// TODO: REMOVE
-							window.DC = dataConsumer;
 
 							store.dispatch(
 								stateActions.addDataConsumer(
@@ -1821,6 +1831,9 @@ export default class RoomClient {
 				appData: { channel: 'chat' },
 			});
 
+			// TODO: For debugging.
+			window.CHAT_DATA_PRODUCER = this._chatDataProducer;
+
 			store.dispatch(
 				stateActions.addDataProducer({
 					id: this._chatDataProducer.id,
@@ -1896,6 +1909,9 @@ export default class RoomClient {
 				priority: 'medium',
 				appData: { channel: 'bot' },
 			});
+
+			// TODO: For debugging.
+			window.BOT_DATA_PRODUCER = this._botDataProducer;
 
 			store.dispatch(
 				stateActions.addDataProducer({
