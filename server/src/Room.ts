@@ -495,6 +495,12 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 			}
 		});
 
+		peer.on('sctp-connected', direction => {
+			if (direction == 'consumer') {
+				void peer.sendMessage(`Welcome ${peer.displayName}! ☺️`);
+			}
+		});
+
 		peer.on('get-router-rtp-capabilities', callback => {
 			callback(this.#consumerRouter.rtpCapabilities);
 		});

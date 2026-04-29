@@ -71,6 +71,10 @@ export type PeerEvents = {
 	 */
 	disconnected: [];
 	/**
+	 *
+	 */
+	'sctp-connected': [direction: TransportDirection];
+	/**
 	 * Emitted to obtain the mediasoup Router RTP capabilities.
 	 */
 	'get-router-rtp-capabilities': [
@@ -457,6 +461,19 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 		} catch (error) {
 			this.#logger.warn(`consumeData() | failed: ${error}`);
 		}
+	}
+
+	async sendMessage(message: string): Promise<void> {
+		this.#logger.debug(
+			'sendMessage() [length:%o]',
+			Buffer.byteLength(message, 'utf8')
+		);
+
+		const botDataConsumer = Array.from(this.#dataConsumers.values()).find(
+			dataConsumer => dataConsumer.appData.channel === 'bot'
+		);
+
+		await botDataConsumer?.send(message);
 	}
 
 	notify<Name extends NotificationNameFromServer>(
@@ -1007,7 +1024,13 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 		});
 
 		transport.on('sctpstatechange', sctpState => {
-			if (sctpState === 'failed' || sctpState === 'closed') {
+			if (sctpState === 'connected') {
+				this.#logger.debug(
+					`${direction} WebRtcTransport SCTP state changed to "connected"`
+				);
+
+				this.emit('sctp-connected', direction);
+			} else if (sctpState === 'failed' || sctpState === 'closed') {
 				this.#logger.warn(
 					`${direction} WebRtcTransport SCTP state changed to "${sctpState}", closing`
 				);
