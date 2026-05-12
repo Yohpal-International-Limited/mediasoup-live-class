@@ -13,8 +13,6 @@ class ChatInput extends React.Component {
 			text: '',
 		};
 
-		// TextArea element got via React ref.
-		// @type {HTMLElement}
 		this._textareaElem = null;
 	}
 
@@ -26,58 +24,67 @@ class ChatInput extends React.Component {
 		const disabled = !connected || (!chatDataProducer && !botDataProducer);
 
 		return (
-			<div data-component="ChatInput">
+			<div data-component="ChatInput" className="d-flex gap-2">
 				<textarea
 					ref={elem => {
 						this._textareaElem = elem;
 					}}
-					placeholder={disabled ? 'Chat unavailable' : 'Write here...'}
+					placeholder={disabled ? 'Chat unavailable' : 'Type a message...'}
 					dir="auto"
 					autoComplete="off"
 					disabled={disabled}
 					value={text}
-					onChange={this.handleChange.bind(this)}
-					onKeyPress={this.handleKeyPress.bind(this)}
+					rows={1}
+					onChange={this.handleChange}
+					onKeyDown={this.handleKeyDown}
 				/>
+				<button
+					className="btn btn-sm d-flex align-items-center justify-content-center flex-shrink-0"
+					disabled={disabled || !text.trim()}
+					onClick={this.handleSend}
+					style={{
+						width: 36,
+						height: 36,
+						borderRadius: 8,
+						background: text.trim() ? '#C5A059' : 'rgba(197,160,89,0.15)',
+						border: 'none',
+						color: text.trim() ? '#050505' : 'rgba(245,245,245,0.3)',
+						transition: 'all 0.2s ease',
+					}}
+				>
+					<i className="fa-solid fa-paper-plane" style={{ fontSize: 13 }} />
+				</button>
 			</div>
 		);
 	}
 
-	handleChange(event) {
-		const text = event.target.value;
+	handleChange = event => {
+		this.setState({ text: event.target.value });
+	};
 
-		this.setState({ text });
-	}
+	handleSend = () => {
+		const text = this.state.text.trim();
 
-	handleKeyPress(event) {
-		// If Shift + Enter do nothing.
-		if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey) return;
-
-		// Don't add the sending Enter into the value.
-		event.preventDefault();
-
-		let text = this.state.text.trim();
+		if (!text) return;
 
 		this.setState({ text: '' });
 
-		if (text) {
-			const { roomClient } = this.props;
-			const match = BotMessageRegex.exec(text);
+		const { roomClient } = this.props;
+		const match = BotMessageRegex.exec(text);
 
-			// Chat message.
-			if (!match) {
-				text = text.trim();
-
-				roomClient.sendChatMessage(text);
-			}
-			// Message to the bot.
-			else {
-				text = match[1].trim();
-
-				roomClient.sendBotMessage(text);
-			}
+		if (!match) {
+			roomClient.sendChatMessage(text);
+		} else {
+			roomClient.sendBotMessage(match[1].trim());
 		}
-	}
+	};
+
+	handleKeyDown = event => {
+		if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey) {
+			event.preventDefault();
+			this.handleSend();
+		}
+	};
 }
 
 ChatInput.propTypes = {

@@ -1,30 +1,23 @@
-@use '../mixins';
-
 [data-component='ChatInput'] {
-	position: relative;
-	height: 100%;
-	width: 100%;
+  textarea {
+    flex: 1;
+    padding: 8px 10px;
+    resize: none;
+    outline: none;
+    background: rgba(0,0,0,0.3);
+    color: var(--bs-body-color, #F5F5F5);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    border: 1px solid rgba(197,160,89,0.15);
+    border-radius: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    min-height: 36px;
+    max-height: 80px;
 
-	> textarea {
-		height: 100%;
-		width: 100%;
-		padding: 4px 8px;
-		resize: none;
-		outline: none;
-		background-color: rgba(#243b55, 1);
-		color: #fff;
-		font-family: inherit;
-		font-size: 13px;
-		font-weight: 400;
-		line-height: 22px;
-		border: none;
-
-		@include mixins.placeholder() {
-			color: rgba(#fff, 0.35);
-		}
-
-		&:disabled {
-			opacity: 0.65;
-		}
-	}
+    &::placeholder { color: rgba(245,245,245,0.3); }
+    &:focus { border-color: rgba(197,160,89,0.3); box-shadow: 0 0 0 3px rgba(197,160,89,0.06); }
+    &:disabled { opacity: 0.4; }
+  }
 }
