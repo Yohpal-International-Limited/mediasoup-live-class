@@ -62,7 +62,7 @@ class Room extends React.Component {
 					{/* Sidebar */}
 					<aside className={classnames('ics-sidebar', { open: sidePanelOpen })}>
 						<div className="sidebar-header">
-							<img src="/public/images/logo.png" alt="ICS" className="sidebar-logo" onError={(e) => e.target.style.display = 'none'} />
+							<img src="/images/logo.png" alt="ICS" className="sidebar-logo" />
 							<span className="brand-text">ICS LIVE</span>
 						</div>
 						
