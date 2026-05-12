@@ -26,6 +26,8 @@ class Room extends React.Component {
 			activePanelTab: 'people',
 		};
 		this._nameChecked = false;
+		this._seenConnected = false;
+		this._seenPeers = false;
 	}
 
 	componentDidUpdate(prevProps) {
@@ -33,13 +35,21 @@ class Room extends React.Component {
 
 		if (this._nameChecked) return;
 
-		if (room.state === 'connected' && prevProps.peers !== peers) {
+		if (room.state === 'connected' && prevProps.room.state !== 'connected') {
+			this._seenConnected = true;
+		}
+		if (prevProps.peers !== peers) {
+			this._seenPeers = true;
+		}
+
+		if (this._seenConnected && this._seenPeers) {
+			this._nameChecked = true;
+
 			const duplicate = Object.values(peers).find(
 				p => p.displayName?.toLowerCase() === me.displayName?.toLowerCase()
 			);
 
 			if (duplicate) {
-				this._nameChecked = true;
 				roomClient.close();
 				Swal.fire({
 					title: 'Username Already Taken',
@@ -50,10 +60,7 @@ class Room extends React.Component {
 					color: '#F5F5F5',
 					confirmButtonColor: '#FFBF29',
 				}).then(() => onLeave());
-				return;
 			}
-
-			this._nameChecked = true;
 		}
 	}
 
