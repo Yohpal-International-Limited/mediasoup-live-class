@@ -198,7 +198,7 @@ async function run() {
 	const root = createRoot(domNode);
 
 	const App = () => {
-		const [step, setStep] = React.useState(roomId ? 3 : 1);
+		const [step, setStep] = React.useState(1);
 		const [client, setClient] = React.useState(null);
 		const [currentRoomId, setCurrentRoomId] = React.useState(roomId);
 		const [currentDisplayName, setCurrentDisplayName] = React.useState(displayName);
@@ -288,7 +288,7 @@ async function run() {
 		};
 
 		if (step === 1) {
-			return <LandingPage onJoin={handleJoin} />;
+			return <LandingPage onJoin={handleJoin} initialRoomId={roomId} />;
 		}
 
 		// Don't render Room until the roomClient has been initialized via useEffect
