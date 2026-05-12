@@ -312,3 +312,10 @@ export const removeAllNotifications = () => {
 		type: 'REMOVE_ALL_NOTIFICATIONS',
 	};
 };
+
+export const addChatMessage = message => {
+	return {
+		type: 'ADD_CHAT_MESSAGE',
+		payload: { message },
+	};
+};
