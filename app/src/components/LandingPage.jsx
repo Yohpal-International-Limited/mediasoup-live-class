@@ -39,8 +39,8 @@ export default function LandingPage({ onJoin, initialRoomId }) {
 	};
 
 	const createAndJoin = () => {
-		const generatedRoomId = Math.random().toString(36).substring(2, 10);
-		onJoin(generatedRoomId, userName || 'Educator');
+		const targetRoomId = roomId.trim() || Math.random().toString(36).substring(2, 10);
+		onJoin(targetRoomId, userName || 'Educator');
 	};
 
 	const joinRoom = () => {
