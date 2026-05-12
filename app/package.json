@@ -25,9 +25,13 @@
 	},
 	"dependencies": {
 		"@babel/runtime": "7.29.2",
+		"@fortawesome/fontawesome-free": "^6.7.2",
 		"@rtcstats/rtcstats-js": "^2.2.2",
 		"awaitqueue": "^3.3.0",
+		"bootstrap": "^5.3.3",
+		"bootstrap-icons": "^1.13.1",
 		"bowser": "2.14.1",
+		"chart.js": "^4.5.1",
 		"classnames": "2.5.1",
 		"clipboard-copy": "3.1.0",
 		"debug": "4.4.3",
@@ -52,7 +56,13 @@
 		"redux": "4.0.5",
 		"redux-thunk": "2.3.0",
 		"riek": "1.1.0",
-		"url-parse": "1.5.10"
+		"sweetalert2": "^11.26.24",
+		"url-parse": "1.5.10",
+		"jquery": "^3.7.1",
+		"select2": "^4.1.0-rc.0",
+		"toastr": "^2.1.4",
+		"print-js": "^1.6.0",
+		"bootstrap-datepicker": "^1.10.0"
 	},
 	"devDependencies": {
 		"@types/node": "24",
