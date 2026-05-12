@@ -211,7 +211,7 @@ class Room extends React.Component {
 						</footer>
 					</main>
 
-					<Stats />
+					<Stats roomClient={roomClient} />
 					<ReactTooltip effect="solid" className="ics-tooltip" />
 				</div>
 			</Appear>

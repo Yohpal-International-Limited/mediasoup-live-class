@@ -1,0 +1,91 @@
+@layer utilities {
+	.glass-effect {
+		background: rgba(255, 255, 255, 0.05);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.glass-dark {
+		background: rgba(0, 0, 0, 0.3);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border: 1px solid rgba(255, 255, 255, 0.05);
+	}
+
+	.animate-blob {
+		animation: blob 7s infinite;
+	}
+
+	.animation-delay-2000 {
+		animation-delay: 2s;
+	}
+
+	.animation-delay-4000 {
+		animation-delay: 4s;
+	}
+}
+
+.landing-page-container {
+	@apply relative min-h-screen w-full bg-ics-navy overflow-hidden flex flex-col;
+	
+	.animated-bg {
+		@apply absolute inset-0 overflow-hidden;
+		
+		.blob {
+			@apply absolute rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob;
+		}
+	}
+
+	.landing-content {
+		@apply relative z-10 flex-grow flex flex-col items-center justify-center px-4 py-20;
+	}
+
+	.hero-section {
+		@apply text-center mb-16 space-y-6;
+
+		h1 {
+			@apply text-7xl md:text-9xl font-black bg-gradient-to-b from-white via-emerald-100 to-emerald-500 bg-clip-text text-transparent;
+		}
+
+		p {
+			@apply text-2xl md:text-3xl font-heading text-emerald-50 max-w-3xl mx-auto;
+		}
+	}
+
+	.action-cards {
+		@apply grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-6xl;
+	}
+
+	.action-card {
+		@apply p-10 rounded-[3rem] space-y-8 transition-all duration-500 hover:scale-[1.02];
+		
+		&.join {
+			@apply bg-emerald-950/20 glass-effect border-emerald-500/20 shadow-luxury;
+		}
+
+		&.create {
+			@apply bg-ics-gold/10 glass-effect border-ics-gold/30 shadow-luxury-gold;
+		}
+
+		h3 {
+			@apply text-3xl font-bold text-white;
+		}
+
+		p {
+			@apply text-emerald-200/50;
+		}
+
+		.input-group {
+			@apply space-y-4;
+			
+			input {
+				@apply w-full bg-black/40 border border-white/10 text-white rounded-2xl py-4 px-6 focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all;
+			}
+		}
+
+		button {
+			@apply w-full py-5 px-8 rounded-2xl font-bold transition-all active:scale-95;
+		}
+	}
+}

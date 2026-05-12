@@ -20,6 +20,7 @@ import * as cookiesManager from './cookiesManager';
 import * as stateActions from './redux/stateActions';
 import reducers from './redux/reducers';
 import Room from './components/Room';
+import LandingPage from './components/LandingPage';
 import './scss/index.scss';
 
 const logger = new Logger();
@@ -118,12 +119,16 @@ async function run() {
 		window.NETWORK_THROTTLE_SECRET = throttleSecret;
 	}
 
-	if (!roomId) {
-		roomId = randomString({ length: 8 }).toLowerCase();
-
+	// If no roomId is provided, we will later show the LandingPage.
+	// We don't force one here to allow the LandingPage to handle it.
+	// if (!roomId) {
+	// 	roomId = randomString({ length: 8 }).toLowerCase();
+	// 
+	// 	urlParser.query.roomId = roomId;
+	// 	window.history.pushState('', '', urlParser.toString());
+	// }
 		urlParser.query.roomId = roomId;
 		window.history.pushState('', '', urlParser.toString());
-	}
 
 	// Get the effective/shareable Room URL.
 	const roomUrlParser = new UrlParse(window.location.href, true);
@@ -197,54 +202,93 @@ async function run() {
 		stateActions.setMe({ peerId, displayName, displayNameSet, device })
 	);
 
-	roomClient = new RoomClient({
-		roomId,
-		peerId,
-		displayName,
-		device,
-		handlerName: handlerName,
-		forceTcp,
-		produce,
-		consume,
-		datachannel,
-		mic,
-		webcam,
-		preferLocalCodecsOrder,
-		forcePCMA,
-		forceVP8,
-		forceH264,
-		forceVP9,
-		forceAV1,
-		enableWebcamLayers,
-		enableSharingLayers,
-		webcamScalabilityMode,
-		sharingScalabilityMode,
-		numWebcamSimulcastStreams,
-		numSharingSimulcastStreams,
-		videoContentHint,
-		screenSharing4K,
-		externalVideo,
-		e2eKey,
-		consumerReplicas,
-		usePipeTransports,
-		stats,
-		rtcstatsUrl,
-	});
-
-	// NOTE: For debugging.
-	// eslint-disable-next-line require-atomic-updates
-	window.CLIENT = roomClient;
-	// eslint-disable-next-line require-atomic-updates
-	window.CC = roomClient;
-
 	const domNode = document.getElementById('mediasoup-demo-app-container');
 	const root = createRoot(domNode);
 
-	root.render(
-		<Provider store={store}>
-			<RoomContext.Provider value={roomClient}>
+	const App = () => {
+		const [step, setStep] = React.useState(roomId ? 3 : 1);
+		const [client, setClient] = React.useState(null);
+		const [currentRoomId, setCurrentRoomId] = React.useState(roomId);
+		const [currentDisplayName, setCurrentDisplayName] = React.useState(displayName);
+
+		// Initialize client if we already have a room
+		React.useEffect(() => {
+			if (currentRoomId && step === 3 && !client) {
+				initRoomClient(currentRoomId, currentDisplayName);
+			}
+		}, [currentRoomId, currentDisplayName, step]);
+
+		const initRoomClient = (rId, dName) => {
+			const rClient = new RoomClient({
+				roomId: rId,
+				peerId,
+				displayName: dName,
+				device,
+				handlerName: handlerName,
+				forceTcp,
+				produce,
+				consume,
+				datachannel,
+				mic,
+				webcam,
+				preferLocalCodecsOrder,
+				forcePCMA,
+				forceVP8,
+				forceH264,
+				forceVP9,
+				forceAV1,
+				enableWebcamLayers,
+				enableSharingLayers,
+				webcamScalabilityMode,
+				sharingScalabilityMode,
+				numWebcamSimulcastStreams,
+				numSharingSimulcastStreams,
+				videoContentHint,
+				screenSharing4K,
+				externalVideo,
+				e2eKey,
+				consumerReplicas,
+				usePipeTransports,
+				stats,
+				rtcstatsUrl,
+			});
+
+			// NOTE: For debugging.
+			roomClient = rClient;
+			window.CLIENT = rClient;
+			window.CC = rClient;
+
+			setClient(rClient);
+		};
+
+		const handleJoin = (joinRoomId, joinDisplayName) => {
+			setCurrentRoomId(joinRoomId);
+			setCurrentDisplayName(joinDisplayName);
+			
+			// Update URL without reloading
+			const newUrlParser = new UrlParse(window.location.href, true);
+			newUrlParser.query.roomId = joinRoomId;
+			newUrlParser.query.displayName = joinDisplayName;
+			window.history.pushState('', '', newUrlParser.toString());
+
+			initRoomClient(joinRoomId, joinDisplayName);
+			setStep(3);
+		};
+
+		if (step === 1) {
+			return <LandingPage onJoin={handleJoin} />;
+		}
+
+		return (
+			<RoomContext.Provider value={client}>
 				<Room />
 			</RoomContext.Provider>
+		);
+	};
+
+	root.render(
+		<Provider store={store}>
+			<App />
 		</Provider>
 	);
 }

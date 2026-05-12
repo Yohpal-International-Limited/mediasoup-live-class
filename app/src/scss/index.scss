@@ -1,11 +1,13 @@
 @use './variables' as vars;
 @use './reset';
+@use './landing';
 @use './components/Room';
 @use './components/PeerView';
 @use './components/ChatInput';
 @use './components/ChatMessages';
 @use './components/Stats';
 @use './components/Notifications';
+@use './components/Me';
 @use './components/Peers';
 @use './components/Peer';
 
@@ -35,14 +37,7 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 * { scrollbar-width: thin; scrollbar-color: rgba(197, 160, 89, 0.3) transparent; }
 
-/* ICS Theme Layout */
-.ics-theme {
-	display: flex;
-	height: 100vh;
-	width: 100vw;
-	background: vars.$ics-black;
-	overflow: hidden;
-}
+
 
 /* Sidebar Styling */
 .ics-sidebar {
