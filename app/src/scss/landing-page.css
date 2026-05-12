@@ -112,16 +112,9 @@
 .lp-nav-logo {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, var(--ics-gold) 0%, #e6a800 100%);
   border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-heading);
-  font-weight: 900;
-  font-size: 12px;
-  color: var(--ics-black);
-  letter-spacing: 0.05em;
+  object-fit: contain;
+  background: var(--ics-navy);
   box-shadow: 0 4px 16px rgba(255,191,41,0.3);
 }
 

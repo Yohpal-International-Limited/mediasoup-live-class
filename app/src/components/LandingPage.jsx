@@ -63,7 +63,7 @@ export default function LandingPage({ onJoin }) {
 
 			<nav className="lp-nav">
 				<a className="lp-nav-brand" href="#">
-					<div className="lp-nav-logo">ICS</div>
+					<img src="/images/logo.png" alt="ICS" className="lp-nav-logo" />
 					<span className="lp-nav-name">ICS <span>LIVE</span></span>
 				</a>
 
