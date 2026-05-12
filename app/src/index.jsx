@@ -120,15 +120,7 @@ async function run() {
 	}
 
 	// If no roomId is provided, we will later show the LandingPage.
-	// We don't force one here to allow the LandingPage to handle it.
-	// if (!roomId) {
-	// 	roomId = randomString({ length: 8 }).toLowerCase();
-	// 
-	// 	urlParser.query.roomId = roomId;
-	// 	window.history.pushState('', '', urlParser.toString());
-	// }
-		urlParser.query.roomId = roomId;
-		window.history.pushState('', '', urlParser.toString());
+	// The LandingPage will generate one when "Instant Launch" is clicked.
 
 	// Get the effective/shareable Room URL.
 	const roomUrlParser = new UrlParse(window.location.href, true);
@@ -277,6 +269,16 @@ async function run() {
 
 		if (step === 1) {
 			return <LandingPage onJoin={handleJoin} />;
+		}
+
+		// Don't render Room until the roomClient has been initialized via useEffect
+		if (!client) {
+			return (
+				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#050505', color: '#C5A059', flexDirection: 'column', gap: 16 }}>
+					<i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '2rem' }} />
+					<span style={{ fontSize: '0.85rem', opacity: 0.6, letterSpacing: '0.08em', fontFamily: 'Inter, sans-serif' }}>CONNECTING TO SESSION...</span>
+				</div>
+			);
 		}
 
 		return (
