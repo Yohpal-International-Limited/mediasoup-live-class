@@ -1,17 +1,31 @@
 import React, { useState, useEffect } from 'react';
+import { cn } from '../utils';
+import '../scss/landing-page.css';
 import * as cookiesManager from '../cookiesManager';
+
+const features = [
+	'Live HD Video Stream',
+	'Verified Educator Session',
+	'Interactive Student Grid',
+	'Screen Sharing & Chat',
+];
+
+const footerChips = [
+	{ dot: 'emerald', label: 'Lecture Grid' },
+	{ dot: 'gold', label: 'Ultra-Low Latency' },
+	{ dot: 'white', label: 'End-to-End Encrypted' },
+	{ dot: 'emerald', label: 'Screen Sharing' },
+];
 
 export default function LandingPage({ onJoin }) {
 	const [roomId, setRoomId] = useState('');
 	const [userName, setUserName] = useState('');
-	const [connectionStatus, setConnectionStatus] = useState('online');
 
 	useEffect(() => {
 		const savedUser = cookiesManager.getUser() || {};
 		if (savedUser.displayName) {
 			setUserName(savedUser.displayName);
 		} else {
-			// Check localStorage legacy key from original app if exists
 			const legacyName = localStorage.getItem('streamtalk-user');
 			if (legacyName) setUserName(legacyName);
 		}
@@ -21,145 +35,151 @@ export default function LandingPage({ onJoin }) {
 		const name = e.target.value;
 		setUserName(name);
 		localStorage.setItem('streamtalk-user', name);
-		cookiesManager.setUser({ displayName: name });
+		try { cookiesManager.setUser({ displayName: name }); } catch (_) {}
 	};
 
 	const createAndJoin = () => {
 		const generatedRoomId = Math.random().toString(36).substring(2, 10);
-		const finalName = userName || 'Educator';
-		onJoin(generatedRoomId, finalName);
+		onJoin(generatedRoomId, userName || 'Educator');
 	};
 
 	const joinRoom = () => {
-		if (!roomId) return;
-		const finalName = userName || 'Student';
-		onJoin(roomId, finalName);
+		if (!roomId.trim()) return;
+		onJoin(roomId.trim(), userName || 'Student');
+	};
+
+	const handleKeyDown = (e) => {
+		if (e.key === 'Enter') joinRoom();
 	};
 
 	return (
-		<div className="landing-page-container">
-			{/* Animated Background */}
-			<div className="animated-bg">
-				<div className="blob w-96 h-96 bg-emerald-900 top-0 -left-4 animate-blob"></div>
-				<div className="blob w-96 h-96 bg-yellow-900 top-0 -right-4 animate-blob animation-delay-2000"></div>
-				<div className="blob w-96 h-96 bg-teal-900 -bottom-8 left-20 animate-blob animation-delay-4000"></div>
+		<div className="lp-root">
+			<div className="lp-animated-bg">
+				<div className="lp-blob lp-blob-1" />
+				<div className="lp-blob lp-blob-2" />
+				<div className="lp-blob lp-blob-3" />
+				<div className="lp-grid-overlay" />
 			</div>
 
-			{/* Navbar */}
-			<nav className="relative z-20 w-full px-6 py-6 flex items-center justify-between backdrop-blur-md bg-ics-navy/20">
-				<div className="flex items-center gap-3">
-					{/* Logo Placeholder - in a real app this would be an <img> */}
-					<div className="w-10 h-10 bg-ics-gold rounded-lg flex items-center justify-center font-bold text-ics-black">
-						ICS
-					</div>
-					<span className="text-xl font-heading font-bold text-white">
-						ICS <span className="text-ics-gold">LIVE</span>
-					</span>
+			<nav className="lp-nav">
+				<a className="lp-nav-brand" href="#">
+					<div className="lp-nav-logo">ICS</div>
+					<span className="lp-nav-name">ICS <span>LIVE</span></span>
+				</a>
+
+				<div className="lp-nav-links">
+					<a href="#">Platform</a>
+					<a href="#">Resources</a>
+					<a href="#">Support</a>
 				</div>
 
-				<div className="hidden md:flex items-center gap-8 text-white/70 font-medium">
-					<a href="#" className="hover:text-ics-gold transition-colors">Platform</a>
-					<a href="#" className="hover:text-ics-gold transition-colors">Resources</a>
-					<a href="#" className="hover:text-ics-gold transition-colors">Support</a>
-				</div>
-
-				<div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-					<div className={`w-2 h-2 rounded-full ${connectionStatus === 'online' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-red-500'}`}></div>
-					<span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400/80">Secure Session</span>
+				<div className="lp-nav-badge">
+					<div className="lp-nav-badge-dot" />
+					<span>Secure Session</span>
 				</div>
 			</nav>
 
-			{/* Hero & Action Section */}
-			<main className="landing-content">
-				<div className="hero-section">
-					<h1 className="select-none">ICS LIVE</h1>
-					<p>Advanced Virtual Classroom for Excellence in Education</p>
+			<main className="lp-main">
+				<div className="lp-hero">
+					<div className="lp-hero-eyebrow">
+						Virtual Classroom Platform
+					</div>
+					<h1 className="lp-hero-title">ICS LIVE</h1>
+					<p className="lp-hero-subtitle">
+						Advanced virtual classroom for excellence in education — built for educators and students.
+					</p>
 				</div>
 
-				<div className="w-full max-w-lg mb-12 relative z-20">
-					<div className="input-group">
-						<label className="text-emerald-400/60 text-sm font-bold uppercase tracking-widest mb-2 block mx-2">Your Identity</label>
+				<div className="lp-identity">
+					<label className="lp-identity-label">Your Display Name</label>
+					<input
+						type="text"
+						className="lp-identity-input"
+						placeholder="Enter your name to continue..."
+						value={userName}
+						onChange={handleNameChange}
+						autoFocus
+					/>
+				</div>
+
+				<div className="lp-cards">
+					<div className="lp-card lp-card--join">
+						<div className="lp-card-header">
+							<div className="lp-card-icon">
+								<i className="bi bi-box-arrow-in-right" />
+							</div>
+							<div>
+								<h3 className="lp-card-title">Enter Classroom</h3>
+							</div>
+						</div>
+
+						<p className="lp-card-desc">
+							Securely enter a Class ID to join an ongoing lecture session.
+						</p>
+
 						<input
 							type="text"
-							placeholder="Enter your name"
-							value={userName}
-							onChange={handleNameChange}
-							className="glass-dark"
+							className="lp-card-input"
+							placeholder="CLASS-ID-000"
+							value={roomId}
+							onChange={(e) => setRoomId(e.target.value)}
+							onKeyDown={handleKeyDown}
 						/>
-					</div>
-				</div>
 
-				<div className="action-cards">
-					{/* Join Room Card */}
-					<div className="action-card join">
-						<div className="space-y-2">
-							<h3>Enter Classroom</h3>
-							<p>Securely enter a Class ID to join an ongoing lecture</p>
-						</div>
-						
-						<div className="input-group">
-							<input
-								type="text"
-								placeholder="CLASS-ID-000"
-								value={roomId}
-								onChange={(e) => setRoomId(e.target.value)}
-								className="bg-black/60"
-							/>
-						</div>
+						<div className="lp-card-divider-join" />
 
-						<button 
+						<button
+							className={cn(
+								'lp-btn lp-btn--join',
+								!roomId.trim() && 'opacity-60 cursor-not-allowed'
+							)}
 							onClick={joinRoom}
-							className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/40"
+							disabled={!roomId.trim()}
 						>
 							Enter Class
+							<span className="lp-btn-arrow">→</span>
 						</button>
 					</div>
 
-					{/* Create Room Card */}
-					<div className="action-card create">
-						<div className="space-y-2">
-							<h3>Live Lecture</h3>
-							<p>Start a live session and invite your students</p>
-						</div>
-
-						<div className="space-y-4 py-4 text-white/80 font-medium">
-							<div className="flex items-center gap-3">
-								<i className="bi bi-broadcast text-ics-gold"></i>
-								<span>Live HD Stream</span>
+					<div className="lp-card lp-card--create">
+						<div className="lp-card-header">
+							<div className="lp-card-icon">
+								<i className="bi bi-broadcast" />
 							</div>
-							<div className="flex items-center gap-3">
-								<i className="bi bi-shield-check text-ics-gold"></i>
-								<span>Verified Educator</span>
-							</div>
-							<div className="flex items-center gap-3">
-								<i className="bi bi-people text-ics-gold"></i>
-								<span>Interactive Grid</span>
+							<div>
+								<h3 className="lp-card-title">Live Lecture</h3>
 							</div>
 						</div>
 
-						<button 
-							onClick={createAndJoin}
-							className="bg-ics-gold hover:bg-[#FFD15C] text-ics-black shadow-lg shadow-yellow-900/40"
-						>
+						<p className="lp-card-desc">
+							Start a live session instantly and invite your students.
+						</p>
+
+						<div className="lp-features">
+							{features.map((f, i) => (
+								<div className="lp-feature" key={i}>
+									<div className="lp-feature-dot" />
+									{f}
+								</div>
+							))}
+						</div>
+
+						<div className="lp-card-divider-create" />
+
+						<button className="lp-btn lp-btn--create" onClick={createAndJoin}>
 							Instant Launch
+							<span className="lp-btn-arrow">→</span>
 						</button>
 					</div>
 				</div>
 
-				{/* Features Footer */}
-				<div className="mt-20 flex flex-wrap justify-center gap-8 text-white/40 text-sm font-bold uppercase tracking-widest">
-					<div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5">
-						<div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-						<span>Lecture Grid</span>
-					</div>
-					<div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5">
-						<div className="w-2 h-2 bg-ics-gold rounded-full"></div>
-						<span>Golden Tier</span>
-					</div>
-					<div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5">
-						<div className="w-2 h-2 bg-white rounded-full"></div>
-						<span>Ultra Low Latency</span>
-					</div>
+				<div className="lp-footer">
+					{footerChips.map(({ dot, label }, i) => (
+						<div className="lp-chip" key={i}>
+							<div className={cn('lp-chip-dot', `lp-chip-dot--${dot}`)} />
+							{label}
+						</div>
+					))}
 				</div>
 			</main>
 		</div>
