@@ -107,6 +107,10 @@ class Room extends React.Component {
 						<div className="sidebar-content">
 							{activePanelTab === 'chat' ? (
 								<div className="chat-container">
+									<div className="chat-header-brand">
+										<img src="/images/logo.png" alt="ICS" className="chat-logo" />
+										<span className="chat-brand-text">ICS LIVE</span>
+									</div>
 									<ChatMessages />
 									<ChatInput />
 								</div>
