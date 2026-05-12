@@ -69,9 +69,7 @@ export default defineConfig(async () => {
 			consume: false,
 		};
 
-		const defaultConsumer = {
-			produce: false,
-		};
+		const defaultConsumer = {};
 
 		let producer = null;
 		let consumer = null;

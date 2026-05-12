@@ -66,7 +66,7 @@ async function run() {
 		urlParser.query.displayName || (cookiesManager.getUser() || {}).displayName;
 	const handlerName = urlParser.query.handlerName || urlParser.query.handler;
 	const forceTcp = urlParser.query.forceTcp === 'true';
-	const produce = urlParser.query.produce !== 'false';
+	const produce = true;
 	const consume = urlParser.query.consume !== 'false';
 	const mic = urlParser.query.mic !== 'false';
 	const webcam =
@@ -122,54 +122,9 @@ async function run() {
 	// If no roomId is provided, we will later show the LandingPage.
 	// The LandingPage will generate one when "Instant Launch" is clicked.
 
-	// Get the effective/shareable Room URL.
-	const roomUrlParser = new UrlParse(window.location.href, true);
-
-	for (const key of Object.keys(roomUrlParser.query)) {
-		// Don't keep some custom params.
-		switch (key) {
-			case 'roomId':
-			case 'handlerName':
-			case 'handler':
-			case 'forceTcp':
-			case 'produce':
-			case 'consume':
-			case 'mic':
-			case 'webcam':
-			case 'datachannel':
-			case 'preferLocalCodecsOrder':
-			case 'forcePCMA':
-			case 'forceVP8':
-			case 'forceH264':
-			case 'forceVP9':
-			case 'forceAV1':
-			case 'enableWebcamLayers':
-			case 'enableSharingLayers':
-			case 'webcamScalabilityMode':
-			case 'sharingScalabilityMode':
-			case 'numWebcamSimulcastStreams':
-			case 'numSharingSimulcastStreams':
-			case 'videoContentHint':
-			case 'screenSharing4K':
-			case 'info':
-			case 'stats':
-			case 'faceDetection':
-			case 'externalVideo':
-			case 'throttleSecret':
-			case 'e2eKey':
-			case 'consumerReplicas':
-			case 'usePipeTransports': {
-				break;
-			}
-
-			default: {
-				delete roomUrlParser.query[key];
-			}
-		}
-	}
-	delete roomUrlParser.hash;
-
-	const roomUrl = roomUrlParser.toString();
+	// Build clean shareable Room URL with only roomId.
+	const baseUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
+	const roomUrl = roomId ? `${baseUrl}?roomId=${roomId}` : baseUrl;
 
 	let displayNameSet;
 
@@ -284,14 +239,12 @@ async function run() {
 			setJoinMode(joinType);
 			
 			// Build shareable URL with only roomId
-			const inviteUrl = new UrlParse(window.location.href, true);
-			inviteUrl.query.roomId = joinRoomId;
-			// Strip displayName from shareable URL so invitees choose their own
-			delete inviteUrl.query.displayName;
-			window.history.pushState('', '', inviteUrl.toString());
+			const baseUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
+			const inviteUrl = `${baseUrl}?roomId=${joinRoomId}`;
+			window.history.pushState('', '', inviteUrl);
 
 			// Update the Redux store's room URL so the Invite Link button copies the right link
-			store.dispatch(stateActions.setRoomUrl(inviteUrl.toString()));
+			store.dispatch(stateActions.setRoomUrl(inviteUrl));
 
 			initRoomClient(joinRoomId, joinDisplayName);
 			setStep(3);

@@ -1450,6 +1450,12 @@ export default class RoomClient {
 		if (this._shareProducer) return;
 		else if (this._webcamProducer) await this.disableWebcam();
 
+		if (!this._produce || !this._sendTransport) {
+			logger.error('enableShare() | produce not enabled');
+
+			return;
+		}
+
 		if (!this._mediasoupDevice.canProduce('video')) {
 			logger.error('enableShare() | cannot produce video');
 
