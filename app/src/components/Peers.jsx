@@ -8,21 +8,33 @@ import Peer from './Peer';
 
 const Peers = ({ peers, activeSpeakerId, speakingPeerIds }) => {
 	return (
-		<div data-component="Peers">
-			{peers.map(peer => {
-				return (
-					<Appear key={peer.id} duration={1000}>
-						<div
-							className={classnames('peer-container', {
-								'active-speaker': peer.id === activeSpeakerId,
-								speaking: speakingPeerIds.includes(peer.id),
-							})}
-						>
-							<Peer id={peer.id} />
-						</div>
-					</Appear>
-				);
-			})}
+		<div data-component="Peers" className="ics-peers-list">
+			<div className="peers-header">
+				<i className="fa-solid fa-users" />
+				<span>Participants ({peers.length})</span>
+			</div>
+			<div className="peers-scroll">
+				{peers.map(peer => {
+					return (
+						<Appear key={peer.id} duration={1000}>
+							<div
+								className={classnames('peer-item-wrapper', {
+									'active-speaker': peer.id === activeSpeakerId,
+									speaking: speakingPeerIds.includes(peer.id),
+								})}
+							>
+								<Peer id={peer.id} />
+							</div>
+						</Appear>
+					);
+				})}
+				{peers.length === 0 && (
+					<div className="no-peers">
+						<i className="fa-solid fa-ghost" />
+						<span>Waiting for participants...</span>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 };

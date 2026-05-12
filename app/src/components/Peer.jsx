@@ -28,12 +28,7 @@ const Peer = props => {
 		!videoConsumer.remotelyPaused;
 
 	return (
-		<div data-component="Peer">
-			<div className="indicators">
-				{!audioEnabled && <div className="icon mic-off" />}
-				{!videoConsumer && <div className="icon webcam-off" />}
-			</div>
-
+		<div data-component="Peer" className="ics-peer-item">
 			<PeerView
 				peer={peer}
 				audioConsumerId={audioConsumer ? audioConsumer.id : null}

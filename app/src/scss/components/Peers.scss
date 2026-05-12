@@ -1,67 +1,58 @@
-@use '../mixins';
+@use '../variables' as vars;
 
-[data-component='Peers'] {
-	min-height: 100%;
-	width: 100%;
+.ics-peers-list {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	background: rgba(5, 5, 5, 0.4);
+	border-radius: 20px;
+	border: 1px solid rgba(197, 160, 89, 0.1);
+	backdrop-filter: blur(10px);
+	overflow: hidden;
 
-	@include mixins.desktop() {
-		width: 100%;
-		padding: 40px 0 220px 0;
+	.peers-header {
+		padding: 20px;
 		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
-		justify-content: center;
 		align-items: center;
-		align-content: center;
+		gap: 12px;
+		border-bottom: 1px solid rgba(197, 160, 89, 0.1);
+		background: rgba(197, 160, 89, 0.03);
+
+		i { color: vars.$ics-gold; font-size: 1.1rem; }
+		span { color: #FFF; font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; }
 	}
 
-	@include mixins.mobile() {
-		min-height: 100vh;
-		width: 100%;
+	.peers-scroll {
+		flex-grow: 1;
+		overflow-y: auto;
+		padding: 12px;
 		display: flex;
 		flex-direction: column;
-		justify-content: center;
-		align-items: center;
+		gap: 8px;
+
+		&::-webkit-scrollbar { width: 4px; }
+		&::-webkit-scrollbar-thumb { background: rgba(197, 160, 89, 0.2); border-radius: 10px; }
 	}
 
-	> .peer-container {
+	.peer-item-wrapper {
+		border-radius: 12px;
 		overflow: hidden;
+		transition: all 0.2s ease;
+		border: 1px solid transparent;
 
-		@include mixins.AppearFadeIn(1000ms);
+		&.active-speaker { border-color: vars.$ics-gold; background: rgba(197, 160, 89, 0.05); }
+		&.speaking { box-shadow: 0 0 15px rgba(197, 160, 89, 0.1); }
+	}
 
-		@include mixins.desktop() {
-			flex: 0 0 auto;
-			height: 382px;
-			width: 450px;
-			margin: 6px;
-			border: 1px solid rgba(#fff, 0.15);
-			box-shadow: 0px 5px 12px 2px rgba(#111, 0.5);
-			transition-property: border-color;
-			transition-duration: 0.35s;
-
-			&.speaking:not(.active-speaker) {
-				border-color: #fff;
-			}
-
-			&.active-speaker {
-				border-width: 2px;
-				border-color: yellow;
-			}
-		}
-
-		@include mixins.mobile() {
-			flex: 100 100 auto;
-			order: 2;
-			min-height: 25vh;
-			width: 100%;
-			display: 100 100 auto;
-			flex-direction: column;
-			justify-content: center;
-			align-items: center;
-
-			&.active-speaker {
-				order: 1;
-			}
-		}
+	.no-peers {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 40px 20px;
+		color: rgba(245, 245, 245, 0.3);
+		gap: 12px;
+		i { font-size: 1.5rem; opacity: 0.5; }
+		span { font-size: 0.75rem; font-weight: 600; text-align: center; }
 	}
 }

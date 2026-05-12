@@ -1,13 +1,15 @@
 import qs from 'qs';
 
-let protooPort = 4443;
-
-if (window.location.hostname === 'test.mediasoup.org') {
-	protooPort = 4444;
-}
-
 const hostname = window.location.hostname;
-const protocol = 'wss';
+const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+const protooPort = isLocalhost
+	? 4445
+	: hostname === 'test.mediasoup.org'
+		? 4444
+		: 4443;
+
+const protocol = isLocalhost ? 'ws' : 'wss';
 
 export function getProtooUrl(params) {
 	const query = qs.stringify(params);
