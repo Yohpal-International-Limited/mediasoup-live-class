@@ -17,8 +17,8 @@ const footerChips = [
 	{ dot: 'emerald', label: 'Screen Sharing' },
 ];
 
-export default function LandingPage({ onJoin }) {
-	const [roomId, setRoomId] = useState('');
+export default function LandingPage({ onJoin, initialRoomId }) {
+	const [roomId, setRoomId] = useState(initialRoomId || '');
 	const [userName, setUserName] = useState('');
 
 	useEffect(() => {
