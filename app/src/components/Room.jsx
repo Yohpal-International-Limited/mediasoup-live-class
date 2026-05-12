@@ -25,6 +25,30 @@ class Room extends React.Component {
 			sidePanelOpen: false,
 			activePanelTab: 'people',
 		};
+		this._inviteChecked = false;
+	}
+
+	componentDidUpdate(prevProps) {
+		const { roomClient, room, peers, viaInvite, onLeave } = this.props;
+
+		if (this._inviteChecked) return;
+
+		if (viaInvite && room.state === 'connected' && prevProps.room.state !== 'connected') {
+			this._inviteChecked = true;
+
+			if (Object.keys(peers).length === 0) {
+				roomClient.close();
+				Swal.fire({
+					title: 'Meeting Not Found',
+					text: 'This meeting link is no longer active. The host may have ended the session.',
+					icon: 'warning',
+					confirmButtonText: 'OK',
+					background: '#050505',
+					color: '#F5F5F5',
+					confirmButtonColor: '#FFBF29',
+				}).then(() => onLeave());
+			}
+		}
 	}
 
 	render() {
@@ -276,6 +300,7 @@ Room.propTypes = {
 	amSpeakingPeer: PropTypes.bool.isRequired,
 	onRoomLinkCopy: PropTypes.func.isRequired,
 	onLeave: PropTypes.func.isRequired,
+	viaInvite: PropTypes.bool,
 };
 
 const mapStateToProps = state => {
