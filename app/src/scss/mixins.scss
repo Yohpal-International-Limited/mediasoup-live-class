@@ -1,16 +1,8 @@
 @mixin placeholder() {
-	&::-webkit-input-placeholder {
-		@content;
-	}
-	&:-moz-placeholder {
-		@content;
-	}
-	&::-moz-placeholder {
-		@content;
-	}
-	&:-ms-input-placeholder {
-		@content;
-	}
+	&::-webkit-input-placeholder { @content; }
+	&:-moz-placeholder { @content; }
+	&::-moz-placeholder { @content; }
+	&:-ms-input-placeholder { @content; }
 }
 
 @mixin text-fill-color() {
@@ -26,27 +18,33 @@
 }
 
 @mixin mobile() {
-	@media (max-device-width: 720px) {
-		@content;
-	}
+	@media (max-device-width: 720px) { @content; }
 }
 
 @mixin desktop() {
-	@media (min-device-width: 721px) {
-		@content;
-	}
+	@media (min-device-width: 721px) { @content; }
 }
 
 @mixin AppearFadeIn($duration: 1s, $enterOpacity: 0, $activeOpacity: 1) {
 	will-change: opacity;
-
-	&.Appear-appear {
-		opacity: $enterOpacity;
-	}
-
+	&.Appear-appear { opacity: $enterOpacity; }
 	&.Appear-appear.Appear-appear-active {
 		transition-property: opacity;
 		transition-duration: $duration;
 		opacity: $activeOpacity;
 	}
+}
+
+@mixin respond-above($bp) {
+	@if $bp == 1200 { @media (min-width: 1200px) { @content; } }
+	@else if $bp == 900 { @media (min-width: 900px) { @content; } }
+	@else if $bp == 768 { @media (min-width: 768px) { @content; } }
+	@else if $bp == 600 { @media (min-width: 600px) { @content; } }
+}
+
+@mixin respond-below($bp) {
+	@if $bp == 1200 { @media (max-width: 1199px) { @content; } }
+	@else if $bp == 900 { @media (max-width: 899px) { @content; } }
+	@else if $bp == 768 { @media (max-width: 767px) { @content; } }
+	@else if $bp == 600 { @media (max-width: 599px) { @content; } }
 }
