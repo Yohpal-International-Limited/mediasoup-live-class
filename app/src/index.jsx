@@ -270,6 +270,9 @@ async function run() {
 			delete urlParser.query.displayName;
 			window.history.pushState('', '', urlParser.toString());
 
+			// Reset Redux room URL
+			store.dispatch(stateActions.setRoomUrl(urlParser.toString()));
+
 			setStep(1);
 		};
 
@@ -277,11 +280,15 @@ async function run() {
 			setCurrentRoomId(joinRoomId);
 			setCurrentDisplayName(joinDisplayName);
 			
-			// Update URL without reloading
-			const newUrlParser = new UrlParse(window.location.href, true);
-			newUrlParser.query.roomId = joinRoomId;
-			newUrlParser.query.displayName = joinDisplayName;
-			window.history.pushState('', '', newUrlParser.toString());
+			// Build shareable URL with only roomId
+			const inviteUrl = new UrlParse(window.location.href, true);
+			inviteUrl.query.roomId = joinRoomId;
+			// Strip displayName from shareable URL so invitees choose their own
+			delete inviteUrl.query.displayName;
+			window.history.pushState('', '', inviteUrl.toString());
+
+			// Update the Redux store's room URL so the Invite Link button copies the right link
+			store.dispatch(stateActions.setRoomUrl(inviteUrl.toString()));
 
 			initRoomClient(joinRoomId, joinDisplayName);
 			setStep(3);
