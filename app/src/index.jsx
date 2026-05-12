@@ -310,7 +310,7 @@ async function run() {
 
 		return (
 			<RoomContext.Provider value={client}>
-				<Room onLeave={handleLeave} viaInvite={!!roomId} />
+				<Room onLeave={handleLeave} />
 			</RoomContext.Provider>
 		);
 	};

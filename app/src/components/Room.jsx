@@ -25,32 +25,35 @@ class Room extends React.Component {
 			sidePanelOpen: false,
 			activePanelTab: 'people',
 		};
-		this._inviteChecked = false;
+		this._nameChecked = false;
 	}
 
 	componentDidUpdate(prevProps) {
-		const { roomClient, room, peers, viaInvite, onLeave } = this.props;
+		const { room, peers, me, roomClient, onLeave } = this.props;
 
-		if (this._inviteChecked) return;
+		if (this._nameChecked) return;
 
-		if (viaInvite && room.state === 'connected' && prevProps.room.state !== 'connected') {
-			setTimeout(() => {
-				if (this._inviteChecked) return;
-				this._inviteChecked = true;
+		if (room.state === 'connected' && prevProps.peers !== peers) {
+			const duplicate = Object.values(peers).find(
+				p => p.displayName?.toLowerCase() === me.displayName?.toLowerCase()
+			);
 
-				if (Object.keys(this.props.peers).length === 0) {
-					this.props.roomClient.close();
-					Swal.fire({
-						title: 'Meeting Not Found',
-						text: 'This meeting link is no longer active. The host may have ended the session.',
-						icon: 'warning',
-						confirmButtonText: 'OK',
-						background: '#050505',
-						color: '#F5F5F5',
-						confirmButtonColor: '#FFBF29',
-					}).then(() => this.props.onLeave());
-				}
-			}, 3000);
+			if (duplicate) {
+				this._nameChecked = true;
+				roomClient.close();
+				Swal.fire({
+					title: 'Username Already Taken',
+					text: `"${me.displayName}" is already in use in this session. Please enter a different name.`,
+					icon: 'warning',
+					confirmButtonText: 'Try Again',
+					background: '#050505',
+					color: '#F5F5F5',
+					confirmButtonColor: '#FFBF29',
+				}).then(() => onLeave());
+				return;
+			}
+
+			this._nameChecked = true;
 		}
 	}
 
