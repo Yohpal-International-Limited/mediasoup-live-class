@@ -253,6 +253,26 @@ async function run() {
 			setClient(rClient);
 		};
 
+		const handleLeave = () => {
+			// Clean up global references
+			if (window.CLIENT) {
+				window.CLIENT = undefined;
+				window.CC = undefined;
+			}
+
+			setClient(null);
+			setCurrentRoomId(null);
+			setCurrentDisplayName(null);
+
+			// Remove roomId from URL
+			const urlParser = new UrlParse(window.location.href, true);
+			delete urlParser.query.roomId;
+			delete urlParser.query.displayName;
+			window.history.pushState('', '', urlParser.toString());
+
+			setStep(1);
+		};
+
 		const handleJoin = (joinRoomId, joinDisplayName) => {
 			setCurrentRoomId(joinRoomId);
 			setCurrentDisplayName(joinDisplayName);
@@ -283,7 +303,7 @@ async function run() {
 
 		return (
 			<RoomContext.Provider value={client}>
-				<Room />
+				<Room onLeave={handleLeave} />
 			</RoomContext.Provider>
 		);
 	};

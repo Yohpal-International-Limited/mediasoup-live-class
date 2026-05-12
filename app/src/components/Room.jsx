@@ -201,7 +201,12 @@ class Room extends React.Component {
 											background: '#050505',
 											color: '#F5F5F5',
 											confirmButtonColor: '#D32F2F',
-										}).then(res => res.isConfirmed && roomClient.close());
+										}).then(res => {
+											if (res.isConfirmed) {
+												roomClient.close();
+												this.props.onLeave();
+											}
+										});
 									}}
 								>
 									<i className="fa-solid fa-phone-slash" />
@@ -234,6 +239,7 @@ Room.propTypes = {
 	amActiveSpeaker: PropTypes.bool.isRequired,
 	amSpeakingPeer: PropTypes.bool.isRequired,
 	onRoomLinkCopy: PropTypes.func.isRequired,
+	onLeave: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = state => {
