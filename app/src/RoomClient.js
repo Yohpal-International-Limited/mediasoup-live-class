@@ -626,6 +626,16 @@ export default class RoomClient {
 											})
 										);
 
+										store.dispatch(
+											stateActions.addChatMessage({
+												id: `${Date.now()}-${sendingPeer.id}`,
+												displayName: sendingPeer.displayName,
+												text: message,
+												time: Date.now(),
+												me: false,
+											})
+										);
+
 										break;
 									}
 
@@ -2002,6 +2012,16 @@ export default class RoomClient {
 
 		try {
 			this._chatDataProducer.send(text);
+
+			store.dispatch(
+				stateActions.addChatMessage({
+					id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+					displayName: this._displayName || 'You',
+					text,
+					time: Date.now(),
+					me: true,
+				})
+			);
 		} catch (error) {
 			logger.error('chat DataProducer.send() failed:%o', error);
 
