@@ -112,14 +112,42 @@ class Room extends React.Component {
 								</div>
 							) : (
 								<div className="participants-list">
-									<div className="me-item">
-										<div className="avatar">{initial}</div>
-										<div className="info">
-											<span className="name">{me.displayName} (Me)</span>
-											<span className="role">Host</span>
+									<div className="peer-item">
+										<div className="peer-avatar">{initial}</div>
+										<div className="peer-info">
+											<span className="peer-name">{me.displayName} <span className="peer-tag">(Me)</span></span>
+											<span className="peer-role">Host</span>
+										</div>
+										<div className="peer-indicators">
+											<div className={classnames('indicator', { off: micState === 'off' })}>
+												<i className="fa-solid fa-microphone" />
+											</div>
+											<div className={classnames('indicator', { off: webcamState === 'off' })}>
+												<i className="fa-solid fa-video" />
+											</div>
 										</div>
 									</div>
-									{/* Peers would be rendered here or in a separate list component */}
+									{Object.keys(peers).map(id => {
+										const p = peers[id];
+										const pInitial = p.displayName ? p.displayName.charAt(0).toUpperCase() : '?';
+										return (
+											<div key={id} className="peer-item">
+												<div className="peer-avatar">{pInitial}</div>
+												<div className="peer-info">
+													<span className="peer-name">{p.displayName}</span>
+													<span className="peer-role">{p.device?.name || 'Participant'}</span>
+												</div>
+												<div className="peer-indicators">
+													<div className="indicator">
+														<i className="fa-solid fa-microphone" />
+													</div>
+													<div className="indicator">
+														<i className="fa-solid fa-video" />
+													</div>
+												</div>
+											</div>
+										);
+									})}
 								</div>
 							)}
 						</div>
@@ -143,6 +171,10 @@ class Room extends React.Component {
 							</div>
 
 							<div className="header-right">
+								<div className="peer-count-badge">
+									<i className="fa-solid fa-users" />
+									<span>{viewerCount}</span>
+								</div>
 								<div className="session-timer">00:00:00</div>
 								<div className="user-profile">
 									<div className="avatar-small">{initial}</div>
