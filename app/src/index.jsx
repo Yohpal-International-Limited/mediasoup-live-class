@@ -202,6 +202,7 @@ async function run() {
 		const [client, setClient] = React.useState(null);
 		const [currentRoomId, setCurrentRoomId] = React.useState(roomId);
 		const [currentDisplayName, setCurrentDisplayName] = React.useState(displayName);
+		const [joinMode, setJoinMode] = React.useState('create');
 
 		// Initialize client if we already have a room
 		React.useEffect(() => {
@@ -263,6 +264,7 @@ async function run() {
 			setClient(null);
 			setCurrentRoomId(null);
 			setCurrentDisplayName(null);
+			setJoinMode('create');
 
 			// Remove roomId from URL
 			const urlParser = new UrlParse(window.location.href, true);
@@ -276,9 +278,10 @@ async function run() {
 			setStep(1);
 		};
 
-		const handleJoin = (joinRoomId, joinDisplayName) => {
+		const handleJoin = (joinRoomId, joinDisplayName, joinType = 'create') => {
 			setCurrentRoomId(joinRoomId);
 			setCurrentDisplayName(joinDisplayName);
+			setJoinMode(joinType);
 			
 			// Build shareable URL with only roomId
 			const inviteUrl = new UrlParse(window.location.href, true);
@@ -310,7 +313,7 @@ async function run() {
 
 		return (
 			<RoomContext.Provider value={client}>
-				<Room onLeave={handleLeave} />
+				<Room onLeave={handleLeave} joinMode={joinMode} />
 			</RoomContext.Provider>
 		);
 	};

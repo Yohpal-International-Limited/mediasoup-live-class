@@ -40,12 +40,12 @@ export default function LandingPage({ onJoin, initialRoomId }) {
 
 	const createAndJoin = () => {
 		const newRoomId = Math.random().toString(36).substring(2, 10);
-		onJoin(newRoomId, userName || 'Educator');
+		onJoin(newRoomId, userName || 'Educator', 'create');
 	};
 
 	const joinRoom = () => {
 		if (!roomId.trim()) return;
-		onJoin(roomId.trim(), userName || 'Student');
+		onJoin(roomId.trim(), userName || 'Student', 'join');
 	};
 
 	const handleKeyDown = (e) => {

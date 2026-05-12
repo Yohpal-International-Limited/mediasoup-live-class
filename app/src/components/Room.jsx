@@ -31,7 +31,7 @@ class Room extends React.Component {
 	}
 
 	componentDidUpdate(prevProps) {
-		const { room, peers, me, roomClient, onLeave } = this.props;
+		const { room, peers, me, roomClient, onLeave, joinMode } = this.props;
 
 		if (this._nameChecked) return;
 
@@ -45,6 +45,22 @@ class Room extends React.Component {
 		if (this._seenConnected && this._seenPeers) {
 			this._nameChecked = true;
 
+			// Enter Class requires an active meeting with participants
+			if (joinMode === 'join' && Object.keys(peers).length === 0) {
+				roomClient.close();
+				Swal.fire({
+					title: 'Meeting Not Found',
+					text: 'No active session with this ID. Ask the host to start the meeting, or start one yourself with Instant Launch.',
+					icon: 'warning',
+					confirmButtonText: 'OK',
+					background: '#050505',
+					color: '#F5F5F5',
+					confirmButtonColor: '#FFBF29',
+				}).then(() => onLeave());
+				return;
+			}
+
+			// Check for duplicate usernames
 			const duplicate = Object.values(peers).find(
 				p => p.displayName?.toLowerCase() === me.displayName?.toLowerCase()
 			);
@@ -313,7 +329,7 @@ Room.propTypes = {
 	amSpeakingPeer: PropTypes.bool.isRequired,
 	onRoomLinkCopy: PropTypes.func.isRequired,
 	onLeave: PropTypes.func.isRequired,
-	viaInvite: PropTypes.bool,
+	joinMode: PropTypes.string,
 };
 
 const mapStateToProps = state => {
