@@ -34,20 +34,23 @@ class Room extends React.Component {
 		if (this._inviteChecked) return;
 
 		if (viaInvite && room.state === 'connected' && prevProps.room.state !== 'connected') {
-			this._inviteChecked = true;
+			setTimeout(() => {
+				if (this._inviteChecked) return;
+				this._inviteChecked = true;
 
-			if (Object.keys(peers).length === 0) {
-				roomClient.close();
-				Swal.fire({
-					title: 'Meeting Not Found',
-					text: 'This meeting link is no longer active. The host may have ended the session.',
-					icon: 'warning',
-					confirmButtonText: 'OK',
-					background: '#050505',
-					color: '#F5F5F5',
-					confirmButtonColor: '#FFBF29',
-				}).then(() => onLeave());
-			}
+				if (Object.keys(this.props.peers).length === 0) {
+					this.props.roomClient.close();
+					Swal.fire({
+						title: 'Meeting Not Found',
+						text: 'This meeting link is no longer active. The host may have ended the session.',
+						icon: 'warning',
+						confirmButtonText: 'OK',
+						background: '#050505',
+						color: '#F5F5F5',
+						confirmButtonColor: '#FFBF29',
+					}).then(() => this.props.onLeave());
+				}
+			}, 3000);
 		}
 	}
 
