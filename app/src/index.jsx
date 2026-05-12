@@ -246,6 +246,9 @@ async function run() {
 			// Update the Redux store's room URL so the Invite Link button copies the right link
 			store.dispatch(stateActions.setRoomUrl(inviteUrl));
 
+			// Sync Redux me.displayName with the name chosen on LandingPage
+			store.dispatch(stateActions.setDisplayName(joinDisplayName));
+
 			initRoomClient(joinRoomId, joinDisplayName);
 			setStep(3);
 		};
