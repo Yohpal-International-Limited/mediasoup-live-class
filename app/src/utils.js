@@ -1,7 +1,9 @@
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
 let mediaQueryDetectorElem;
 
 export function initialize() {
-	// Media query detector stuff.
 	mediaQueryDetectorElem = document.getElementById(
 		'mediasoup-demo-app-media-query-detector'
 	);
@@ -9,10 +11,6 @@ export function initialize() {
 	return Promise.resolve();
 }
 
-export function isDesktop() {
-	return Boolean(mediaQueryDetectorElem.offsetParent);
-}
-
-export function isMobile() {
-	return !mediaQueryDetectorElem.offsetParent;
+export function cn(...inputs) {
+	return twMerge(clsx(inputs));
 }
