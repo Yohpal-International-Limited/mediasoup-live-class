@@ -128,6 +128,7 @@ type RequestFromPeer =
 			};
 			responseData: {
 				peers: SerializedPeer[];
+				isHost: boolean;
 			};
 	  }
 	| {
