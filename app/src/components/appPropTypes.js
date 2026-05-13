@@ -22,9 +22,11 @@ export const Me = PropTypes.shape({
 	canSendWebcam: PropTypes.bool.isRequired,
 	canChangeWebcam: PropTypes.bool.isRequired,
 	webcamInProgress: PropTypes.bool.isRequired,
+	shareInProgress: PropTypes.bool.isRequired,
 	audioOnly: PropTypes.bool.isRequired,
 	audioOnlyInProgress: PropTypes.bool.isRequired,
 	restartIceInProgress: PropTypes.bool.isRequired,
+	isHost: PropTypes.bool,
 });
 
 export const Producer = PropTypes.shape({
@@ -47,6 +49,7 @@ export const Peer = PropTypes.shape({
 	displayName: PropTypes.string,
 	device: Device.isRequired,
 	consumers: PropTypes.arrayOf(PropTypes.string).isRequired,
+	isHost: PropTypes.bool,
 });
 
 export const Consumer = PropTypes.shape({
