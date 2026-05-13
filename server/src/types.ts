@@ -90,6 +90,7 @@ export type SerializedPeer = {
 	displayName: string;
 	device: PeerDevice;
 	remoteAddress: string;
+	isHost: boolean;
 };
 
 export type ApiMethod = 'GET' | 'POST' | 'DELETE';
