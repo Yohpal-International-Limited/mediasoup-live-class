@@ -44,6 +44,7 @@ export type PeerCreateOptions = {
 	peerId: PeerId;
 	protooPeer: protooTypes.Peer;
 	remoteAddress: string;
+	isHost?: boolean;
 };
 
 type PeerConstructorOptions = {
@@ -51,6 +52,7 @@ type PeerConstructorOptions = {
 	peerId: PeerId;
 	protooPeer: protooTypes.Peer;
 	remoteAddress: string;
+	isHost: boolean;
 };
 
 export type PeerEvents = {
@@ -175,17 +177,19 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 		mediasoupTypes.DataConsumer<DataConsumerAppData>
 	> = new Map();
 	#closed: boolean = false;
+	#isHost: boolean;
 
 	static create({
 		peerId,
 		protooPeer,
 		remoteAddress,
+		isHost = false,
 	}: PeerCreateOptions): Peer {
 		staticLogger.debug('create() [peerId:%o]', peerId);
 
 		const logger = new Logger(`[peerId:${peerId}]`, staticLogger);
 
-		const peer = new Peer({ logger, peerId, protooPeer, remoteAddress });
+		const peer = new Peer({ logger, peerId, protooPeer, remoteAddress, isHost });
 
 		return peer;
 	}
@@ -195,6 +199,7 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 		peerId,
 		protooPeer,
 		remoteAddress,
+		isHost,
 	}: PeerConstructorOptions) {
 		super();
 
@@ -205,6 +210,7 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 		this.#peerId = peerId;
 		this.#protooPeer = protooPeer;
 		this.#remoteAddress = remoteAddress;
+		this.#isHost = isHost;
 		this.#joinTimer = setTimeout(() => {
 			logger.debug(`Peer didn't join in ${JOIN_TIMEOUT_MS}ms, closing it`);
 
@@ -257,7 +263,12 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 			displayName: this.#displayName!,
 			device: this.#device!,
 			remoteAddress: this.#remoteAddress,
+			isHost: this.#isHost,
 		};
+	}
+
+	setIsHost(): void {
+		this.#isHost = true;
 	}
 
 	getProducers(): mediasoupTypes.Producer<ProducerAppData>[] {
@@ -813,7 +824,7 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 				clearTimeout(this.#joinTimer);
 
 				this.emit('joined', serializedPeers => {
-					accept({ peers: serializedPeers });
+					accept({ peers: serializedPeers, isHost: this.#isHost });
 				});
 
 				break;
