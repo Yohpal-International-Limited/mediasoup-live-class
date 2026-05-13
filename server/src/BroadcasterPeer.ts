@@ -208,6 +208,7 @@ export class BroadcasterPeer extends EnhancedEventEmitter<BroadcasterPeerEvents>
 			displayName: this.#displayName,
 			device: this.#device,
 			remoteAddress: this.#remoteAddress,
+			isHost: false,
 		};
 	}
 
