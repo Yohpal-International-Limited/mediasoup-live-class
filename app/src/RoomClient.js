@@ -1487,7 +1487,7 @@ export default class RoomClient {
 
 			// May mean cancelled (in some implementations).
 			if (!stream) {
-				store.dispatch(stateActions.setShareInProgress(true));
+				store.dispatch(stateActions.setShareInProgress(false));
 
 				return;
 			}
