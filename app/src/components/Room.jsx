@@ -159,7 +159,7 @@ class Room extends React.Component {
 										<div className="peer-avatar">{initial}</div>
 										<div className="peer-info">
 											<span className="peer-name">{me.displayName} <span className="peer-tag">(Me)</span></span>
-											<span className="peer-role">Host</span>
+											<span className="peer-role">{me.isHost ? 'Host' : (me.device?.name || 'Participant')}</span>
 										</div>
 										<div className="peer-indicators">
 											<div className={classnames('indicator', { off: micState === 'off' })}>
@@ -178,7 +178,7 @@ class Room extends React.Component {
 												<div className="peer-avatar">{pInitial}</div>
 												<div className="peer-info">
 													<span className="peer-name">{p.displayName}</span>
-													<span className="peer-role">{p.device?.name || 'Participant'}</span>
+													<span className="peer-role">{p.isHost ? 'Host' : (p.device?.name || 'Participant')}</span>
 												</div>
 												<div className="peer-indicators">
 													<div className="indicator">
