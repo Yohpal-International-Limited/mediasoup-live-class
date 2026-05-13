@@ -711,11 +711,12 @@ export default class RoomClient {
 				}
 
 				case 'newPeer': {
-					const { peerId, displayName, device } = notification.data.peer;
+					const { peerId, displayName, device, isHost } = notification.data.peer;
 					const peer = {
 						id: peerId,
 						displayName,
 						device,
+						isHost,
 					};
 
 					store.dispatch(
@@ -2515,7 +2516,7 @@ export default class RoomClient {
 
 			// Join now into the room.
 			// NOTE: Don't send our RTP capabilities if we don't want to consume.
-			const { peers } = await this._protoo.request('join', {
+			const { peers, isHost } = await this._protoo.request('join', {
 				displayName: this._displayName,
 				device: this._device,
 				rtpCapabilities: this._consume
@@ -2540,15 +2541,27 @@ export default class RoomClient {
 			);
 
 			for (const serializedPeer of peers) {
-				const { peerId, displayName, device } = serializedPeer;
+				const { peerId, displayName, device, isHost: peerIsHost } = serializedPeer;
 				const peer = {
 					id: peerId,
 					displayName,
 					device,
+					isHost: peerIsHost,
 				};
 
 				store.dispatch(
 					stateActions.addPeer({ ...peer, consumers: [], dataConsumers: [] })
+				);
+			}
+
+			// Update isHost for local user after receiving join response.
+			{
+				const { me } = store.getState();
+				store.dispatch(
+					stateActions.setMe({
+						...me,
+						isHost,
+					})
 				);
 			}
 
