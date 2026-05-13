@@ -14,7 +14,7 @@
 		padding-bottom: 120px; // Space for controls
 		overflow-y: auto;
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		justify-content: center;
 
 		.video-grid {
@@ -23,7 +23,7 @@
 			display: flex;
 			flex-wrap: wrap;
 			gap: 20px;
-			align-content: center;
+			align-content: flex-start;
 			justify-content: center;
 			max-width: 1600px;
 			margin: 0 auto;
