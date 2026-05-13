@@ -454,6 +454,12 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 
 		peer.on('joined', callback => {
 			this.#joiningPeers.delete(peer.id);
+
+			// First peer to join is the host.
+			if (this.#peers.size === 0) {
+				peer.setIsHost();
+			}
+
 			this.#peers.set(peer.id, peer);
 
 			const otherPeers = this.getOtherPeers(peer);
