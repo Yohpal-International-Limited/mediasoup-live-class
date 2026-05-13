@@ -216,6 +216,14 @@ type RequestFromPeer =
 			data: {
 				secret: string;
 			};
+	  }
+	| {
+			name: 'chatSent';
+			data: {
+				clientId: string;
+				text: string;
+				displayName: string;
+			};
 	  };
 
 export type RequestNameFromPeer = keyof RequestNameDataMap<RequestFromPeer>;
@@ -329,6 +337,23 @@ type NotificationFromServer =
 			name: 'dataConsumerClosed';
 			data: {
 				dataConsumerId: string;
+			};
+	  }
+	| {
+			name: 'chatAck';
+			data: {
+				clientId: string;
+			};
+	  }
+	| {
+			name: 'chatHistory';
+			data: {
+				messages: {
+					clientId: string;
+					displayName: string;
+					text: string;
+					time: number;
+				}[];
 			};
 	  };
 

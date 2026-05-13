@@ -112,6 +112,12 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 	readonly #peers: Map<string, Peer> = new Map();
 	readonly #joiningBroadcasterPeers: Map<string, BroadcasterPeer> = new Map();
 	readonly #broadcasterPeers: Map<string, BroadcasterPeer> = new Map();
+	readonly #chatHistory: {
+		clientId: string;
+		displayName: string;
+		text: string;
+		time: number;
+	}[] = [];
 	readonly #createdAt: Date;
 	#closed: boolean = false;
 
@@ -495,6 +501,11 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 			}
 
 			void peer.consumeData({ dataProducer: this.#bot.getDataProducer() });
+
+			// Send chat history to newly joined peer.
+			if (this.#chatHistory.length > 0) {
+				peer.notify('chatHistory', { messages: this.#chatHistory });
+			}
 		});
 
 		peer.on('disconnected', () => {
@@ -671,6 +682,15 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 					displayName,
 					oldDisplayName,
 				});
+			}
+		});
+
+		peer.on('chat-sent', ({ clientId, text, displayName, time }) => {
+			this.#chatHistory.push({ clientId, displayName, text, time });
+
+			// Keep only last 50 messages.
+			if (this.#chatHistory.length > 50) {
+				this.#chatHistory.shift();
 			}
 		});
 

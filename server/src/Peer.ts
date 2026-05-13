@@ -147,6 +147,17 @@ export type PeerEvents = {
 		resolve: () => void,
 		reject: (error: Error) => void,
 	];
+	/**
+	 * Emitted when a chat message is sent via signaling.
+	 */
+	'chat-sent': [
+		{
+			clientId: string;
+			text: string;
+			displayName: string;
+			time: number;
+		},
+	];
 };
 
 export class Peer extends EnhancedEventEmitter<PeerEvents> {
@@ -1002,6 +1013,23 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 				const { secret } = data;
 
 				this.emit('stop-network-throttle', { secret }, accept, reject);
+
+				break;
+			}
+
+			case 'chatSent': {
+				const { clientId, text, displayName } = data;
+
+				this.notify('chatAck', { clientId });
+
+				this.emit('chat-sent', {
+					clientId,
+					text,
+					displayName,
+					time: Date.now(),
+				});
+
+				accept();
 
 				break;
 			}

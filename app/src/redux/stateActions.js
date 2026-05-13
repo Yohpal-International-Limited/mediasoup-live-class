@@ -319,3 +319,10 @@ export const addChatMessage = message => {
 		payload: { message },
 	};
 };
+
+export const updateChatMessageStatus = (clientId, status) => {
+	return {
+		type: 'UPDATE_CHAT_MESSAGE_STATUS',
+		payload: { clientId, status },
+	};
+};

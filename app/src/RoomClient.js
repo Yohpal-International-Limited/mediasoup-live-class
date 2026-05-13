@@ -199,6 +199,14 @@ export default class RoomClient {
 		// @type {Number}
 		this._nextDataChannelTestNumber = 0;
 
+		// Chat message queue for messages sent before DataProducer is open.
+		// @type {Array}
+		this._chatMessageQueue = [];
+
+		// Pending chat ACK timers keyed by clientId.
+		// @type {Map<string, Timeout>}
+		this._chatAckPending = new Map();
+
 		// AwaitQueue to control received messages about Consumers and DataConsumers.
 		this._consumingAwaitQueue = new AwaitQueue();
 
@@ -648,6 +656,16 @@ export default class RoomClient {
 											})
 										);
 
+										store.dispatch(
+											stateActions.addChatMessage({
+												id: `bot-${Date.now()}`,
+												displayName: 'Bot',
+												text: message,
+												time: Date.now(),
+												me: false,
+											})
+										);
+
 										break;
 									}
 								}
@@ -919,6 +937,42 @@ export default class RoomClient {
 					const peerIds = peerVolumes.map(({ peerId }) => peerId);
 
 					store.dispatch(stateActions.setRoomSpeakingPeers(peerIds));
+
+					break;
+				}
+
+				case 'chatAck': {
+					const { clientId } = notification.data;
+					const ackTimer = this._chatAckPending.get(clientId);
+
+					if (ackTimer) {
+						clearTimeout(ackTimer);
+						this._chatAckPending.delete(clientId);
+
+						store.dispatch(
+							stateActions.updateChatMessageStatus(clientId, 'sent')
+						);
+					}
+
+					break;
+				}
+
+				case 'chatHistory': {
+					const { messages } = notification.data;
+
+					for (const msg of messages) {
+						store.dispatch(
+							stateActions.addChatMessage({
+								id: `hist-${msg.clientId}`,
+								clientId: msg.clientId,
+								displayName: msg.displayName,
+								text: msg.text,
+								time: msg.time,
+								me: false,
+								status: 'sent',
+							})
+						);
+					}
 
 					break;
 				}
@@ -1881,6 +1935,8 @@ export default class RoomClient {
 
 			this._chatDataProducer.on('open', () => {
 				logger.debug('chat DataProducer "open" event');
+
+				this._flushChatMessageQueue();
 			});
 
 			this._chatDataProducer.on('close', () => {
@@ -2017,27 +2073,104 @@ export default class RoomClient {
 			return;
 		}
 
+		const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+		const message = { type: 'chat', clientId, text };
+
+		// Optimistic insert with status 'sending'.
+		store.dispatch(
+			stateActions.addChatMessage({
+				id: clientId,
+				clientId,
+				displayName: this._displayName || 'You',
+				text,
+				time: Date.now(),
+				me: true,
+				status: 'sending',
+			})
+		);
+
+		// If DataProducer not open yet, queue the message.
+		if (this._chatDataProducer.readyState !== 'open') {
+			logger.warn(
+				'sendChatMessage() | DataProducer not open, queueing [readyState:%s]',
+				this._chatDataProducer.readyState
+			);
+
+			this._chatMessageQueue.push(message);
+
+			return;
+		}
+
+		await this._sendChatMessageNow(clientId, message);
+	}
+
+	async _sendChatMessageNow(clientId, message) {
 		try {
-			this._chatDataProducer.send(text);
+			const payload = JSON.stringify(message);
+
+			this._chatDataProducer.send(payload);
+
+			logger.debug('_sendChatMessageNow() | sent [clientId:%s]', clientId);
+
+			// Set ACK timeout — mark failed if no confirmation within 5s.
+			const ackTimer = setTimeout(() => {
+				logger.warn(
+					'_sendChatMessageNow() | ACK timeout [clientId:%s]',
+					clientId
+				);
+
+				store.dispatch(
+					stateActions.updateChatMessageStatus(clientId, 'failed')
+				);
+
+				this._chatAckPending.delete(clientId);
+			}, 5000);
+
+			this._chatAckPending.set(clientId, ackTimer);
+
+			// Also notify server via signaling for a reliable ACK.
+			try {
+				await this._protoo.request('chatSent', {
+					clientId,
+					text,
+					displayName: this._displayName || 'You',
+				});
+			} catch (ackError) {
+				logger.warn(
+					'sendChatMessage() | signaling ACK failed:%o',
+					ackError
+				);
+			}
+		} catch (error) {
+			logger.error('_sendChatMessageNow() | failed:%o', error);
 
 			store.dispatch(
-				stateActions.addChatMessage({
-					id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-					displayName: this._displayName || 'You',
-					text,
-					time: Date.now(),
-					me: true,
-				})
+				stateActions.updateChatMessageStatus(clientId, 'failed')
 			);
-		} catch (error) {
-			logger.error('chat DataProducer.send() failed:%o', error);
 
 			store.dispatch(
 				requestActions.notify({
 					type: 'error',
-					text: `chat DataProducer.send() failed: ${error}`,
+					text: `Chat send failed: ${error}`,
 				})
 			);
+		}
+	}
+
+	_flushChatMessageQueue() {
+		if (
+			!this._chatDataProducer ||
+			this._chatDataProducer.readyState !== 'open'
+		) {
+			return;
+		}
+
+		while (this._chatMessageQueue.length > 0) {
+			const msg = this._chatMessageQueue.shift();
+
+			const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+			this._sendChatMessageNow(clientId, msg);
 		}
 	}
 

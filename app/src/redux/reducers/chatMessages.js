@@ -8,6 +8,14 @@ const chatMessages = (state = initialState, action) => {
 			return [...state, message];
 		}
 
+		case 'UPDATE_CHAT_MESSAGE_STATUS': {
+			const { clientId, status } = action.payload;
+
+			return state.map(msg =>
+				msg.clientId === clientId ? { ...msg, status } : msg
+			);
+		}
+
 		default:
 			return state;
 	}
