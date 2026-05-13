@@ -65,7 +65,7 @@ export default class PeerView extends React.Component {
 
 				<div className="tile-overlay">
 					<div className="tile-header">
-						{isMe && (
+						{peer.isHost && (
 							<span className="premium-badge">
 								<i className="fa-solid fa-crown" />
 								<span>Host</span>
