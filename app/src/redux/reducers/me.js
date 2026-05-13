@@ -12,6 +12,7 @@ const initialState = {
 	audioOnlyInProgress: false,
 	audioMuted: false,
 	restartIceInProgress: false,
+	isHost: false,
 };
 
 const me = (state = initialState, action) => {
@@ -35,9 +36,9 @@ const me = (state = initialState, action) => {
 		}
 
 		case 'SET_ME': {
-			const { peerId, displayName, displayNameSet, device } = action.payload;
+			const { peerId, displayName, displayNameSet, device, isHost } = action.payload;
 
-			return { ...state, id: peerId, displayName, displayNameSet, device };
+			return { ...state, id: peerId, displayName, displayNameSet, device, isHost };
 		}
 
 		case 'SET_MEDIA_CAPABILITIES': {
