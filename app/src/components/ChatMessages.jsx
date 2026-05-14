@@ -3,8 +3,6 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import classnames from 'classnames';
 import { withRoomContext } from '../RoomContext';
-// Chat SDK removed - feature disabled
-// import { useChat } from '@yohpal/chat-sdk-react';
 
 const statusIcon = status => {
 	switch (status) {
@@ -39,41 +37,22 @@ const statusIcon = status => {
 
 const ChatMessages = ({
 	roomClient,
-	chatClient,
-	myPeerId,
-	chatMessages: legacyChatMessages,
+	chatMessages,
+	onReplyClick,
 }) => {
 	const messagesEndRef = React.useRef(null);
-	const roomId =
-		roomClient._protooUrl.match(/roomId=([^&]+)/)?.[1] || 'default';
-
-	const { messages: sdkMessages } = useChat(chatClient, roomId);
-
-	// Combine legacy messages (like bot messages) and SDK messages
-	// In a real app, we'd probably migrate everything to SDK.
-	// For now, let's just use SDK messages if available, or both.
-	const allMessages = [
-		...legacyChatMessages,
-		...sdkMessages.map(m => ({
-			id: m.id,
-			displayName: m.displayName || m.senderId,
-			text: m.content,
-			time:
-				typeof m.createdAt === 'number'
-					? m.createdAt
-					: new Date(m.createdAt).getTime(),
-			me: m.senderId === myPeerId,
-			status: 'sent', // SDK handles status internally, but for now we'll mark as sent
-		})),
-	].sort((a, b) => a.time - b.time);
 
 	React.useEffect(() => {
 		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-	}, [allMessages]);
+	}, [chatMessages]);
+
+	const getRepliedToMessage = (messageId) => {
+		return chatMessages.find(m => m.id === messageId);
+	};
 
 	return (
 		<div className="chat-messages">
-			{allMessages.length === 0 && (
+			{chatMessages.length === 0 && (
 				<div
 					className="d-flex flex-column align-items-center justify-content-center h-100 text-secondary"
 					style={{ fontSize: 13, opacity: 0.6 }}
@@ -82,42 +61,73 @@ const ChatMessages = ({
 					<span>No messages yet</span>
 				</div>
 			)}
-			{allMessages.map(msg => (
-				<div
-					key={msg.id}
-					className={classnames('chat-bubble', {
-						'chat-bubble--me': msg.me,
-						'chat-bubble--other': !msg.me,
-					})}
-				>
-					<div className="chat-bubble__sender">
-						{msg.me ? 'You' : msg.displayName}
-						<span className="chat-bubble__time">
-							{new Date(msg.time).toLocaleTimeString([], {
-								hour: '2-digit',
-								minute: '2-digit',
-							})}
-						</span>
-					</div>
-					<div className="chat-bubble__text">
-						{msg.text}
-						{msg.me && statusIcon(msg.status)}
-						{msg.me && msg.status === 'failed' && (
-							<button
-								className="btn btn-sm p-0 ms-1"
-								title="Retry"
-								style={{ color: '#f44336', background: 'none', border: 'none' }}
-								onClick={() => roomClient.sendChatMessage(msg.text)}
+			{chatMessages.map(msg => {
+				const repliedTo = msg.replyToMessageId ? getRepliedToMessage(msg.replyToMessageId) : null;
+				return (
+					<div
+						key={msg.id}
+						className={classnames('chat-bubble', {
+							'chat-bubble--me': msg.me,
+							'chat-bubble--other': !msg.me,
+						})}
+					>
+						{repliedTo && (
+							<div
+								style={{
+									fontSize: '12px',
+									opacity: 0.6,
+									padding: '4px 8px',
+									borderLeft: '2px solid #C5A059',
+									marginBottom: '4px',
+									fontStyle: 'italic',
+								}}
 							>
-								<i
-									className="fa-solid fa-rotate-left"
-									style={{ fontSize: 10 }}
-								/>
-							</button>
+								<div>↳ {repliedTo.displayName}</div>
+								<div style={{ opacity: 0.7 }}>{repliedTo.text.substring(0, 50)}...</div>
+							</div>
 						)}
+						<div className="chat-bubble__sender">
+							{msg.me ? 'You' : msg.displayName}
+							<span className="chat-bubble__time">
+								{new Date(msg.time).toLocaleTimeString([], {
+									hour: '2-digit',
+									minute: '2-digit',
+								})}
+							</span>
+						</div>
+						<div className="chat-bubble__text">
+							{msg.text}
+							{msg.me && statusIcon(msg.status)}
+							{msg.me && msg.status === 'failed' && (
+								<button
+									className="btn btn-sm p-0 ms-1"
+									title="Retry"
+									style={{ color: '#f44336', background: 'none', border: 'none' }}
+									onClick={() => roomClient.sendChatMessage(msg.text)}
+								>
+									<i
+										className="fa-solid fa-rotate-left"
+										style={{ fontSize: 10 }}
+									/>
+								</button>
+							)}
+						</div>
+						<button
+							className="btn btn-sm p-0 ms-1"
+							title="Reply"
+							style={{
+								color: '#C5A059',
+								background: 'none',
+								border: 'none',
+								fontSize: '10px',
+							}}
+							onClick={() => onReplyClick(msg)}
+						>
+							<i className="fa-solid fa-reply" />
+						</button>
 					</div>
-				</div>
-			))}
+				);
+			})}
 			<div ref={messagesEndRef} />
 		</div>
 	);
@@ -125,7 +135,6 @@ const ChatMessages = ({
 
 ChatMessages.propTypes = {
 	roomClient: PropTypes.any,
-	chatClient: PropTypes.any,
 	myPeerId: PropTypes.string,
 	chatMessages: PropTypes.arrayOf(
 		PropTypes.shape({
@@ -135,8 +144,11 @@ ChatMessages.propTypes = {
 			time: PropTypes.number.isRequired,
 			me: PropTypes.bool.isRequired,
 			status: PropTypes.string,
+			replyToMessageId: PropTypes.string,
 		})
 	).isRequired,
+	replyToMessage: PropTypes.any,
+	onReplyClick: PropTypes.func,
 };
 
 const mapStateToProps = state => ({

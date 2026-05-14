@@ -1,5 +1,6 @@
 import protooClient from 'protoo-client';
 import * as mediasoupClient from 'mediasoup-client';
+import { io } from 'socket.io-client';
 import { AwaitQueue } from 'awaitqueue';
 import { wrapRTCStatsWithDefaultOptions } from '@rtcstats/rtcstats-js';
 import Logger from './Logger';
@@ -245,6 +246,16 @@ export default class RoomClient {
 		// @type {protooClient.Peer}
 		this._protoo = null;
 
+		// Socket.IO client for chat
+		// @type {Socket|null}
+		this._chatSocket = null;
+		this._chatSocketUrl = getProtooUrl({
+			roomId,
+			peerId,
+			consumerReplicas,
+			usePipeTransports,
+		}).replace(/^wss?:\/\//, '').split('/')[0];
+
 		// mediasoup-client Device instance.
 		// @type {mediasoupClient.Device}
 		this._mediasoupDevice = null;
@@ -309,6 +320,9 @@ export default class RoomClient {
 		this._closed = true;
 
 		logger.debug('close()');
+
+		// Close chat socket
+		this._closeChatSocket();
 
 		// Close rtcstats-js client.
 		if (this._rtcstatsTrace) {
@@ -2060,144 +2074,6 @@ export default class RoomClient {
 		}
 	}
 
-	async sendChatMessage(text) {
-		logger.debug('sendChatMessage() [text:"%s]', text);
-
-		if (!this._chatDataProducer) {
-			store.dispatch(
-				requestActions.notify({
-					type: 'error',
-					text: 'No chat DataProducer',
-				})
-			);
-
-			return;
-		}
-
-		const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-		const message = { type: 'chat', clientId, text };
-
-		// Optimistic insert with status 'sending'.
-		store.dispatch(
-			stateActions.addChatMessage({
-				id: clientId,
-				clientId,
-				displayName: this._displayName || 'You',
-				text,
-				time: Date.now(),
-				me: true,
-				status: 'sending',
-			})
-		);
-
-		// If DataProducer not open yet, queue the message.
-		if (this._chatDataProducer.readyState !== 'open') {
-			logger.warn(
-				'sendChatMessage() | DataProducer not open, queueing [readyState:%s]',
-				this._chatDataProducer.readyState
-			);
-
-			this._chatMessageQueue.push(message);
-
-			return;
-		}
-
-		await this._sendChatMessageNow(clientId, message);
-	}
-
-	async _sendChatMessageNow(clientId, message) {
-		try {
-			const payload = JSON.stringify(message);
-
-			this._chatDataProducer.send(payload);
-
-			logger.debug('_sendChatMessageNow() | sent [clientId:%s]', clientId);
-
-			// Set ACK timeout — mark failed if no confirmation within 5s.
-			const ackTimer = setTimeout(() => {
-				logger.warn(
-					'_sendChatMessageNow() | ACK timeout [clientId:%s]',
-					clientId
-				);
-
-				store.dispatch(
-					stateActions.updateChatMessageStatus(clientId, 'failed')
-				);
-
-				this._chatAckPending.delete(clientId);
-			}, 5000);
-
-			this._chatAckPending.set(clientId, ackTimer);
-
-			// Also notify server via signaling for a reliable ACK.
-			try {
-				await this._protoo.request('chatSent', {
-					clientId,
-					text: message.text,
-					displayName: this._displayName || 'You',
-				});
-			} catch (ackError) {
-				logger.warn('sendChatMessage() | signaling ACK failed:%o', ackError);
-			}
-		} catch (error) {
-			logger.error('_sendChatMessageNow() | failed:%o', error);
-
-			store.dispatch(stateActions.updateChatMessageStatus(clientId, 'failed'));
-
-			store.dispatch(
-				requestActions.notify({
-					type: 'error',
-					text: `Chat send failed: ${error}`,
-				})
-			);
-		}
-	}
-
-	_flushChatMessageQueue() {
-		if (
-			!this._chatDataProducer ||
-			this._chatDataProducer.readyState !== 'open'
-		) {
-			return;
-		}
-
-		while (this._chatMessageQueue.length > 0) {
-			const msg = this._chatMessageQueue.shift();
-
-			const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-			this._sendChatMessageNow(clientId, msg);
-		}
-	}
-
-	async sendBotMessage(text) {
-		logger.debug('sendBotMessage() [text:"%s]', text);
-
-		if (!this._botDataProducer) {
-			store.dispatch(
-				requestActions.notify({
-					type: 'error',
-					text: 'No bot DataProducer',
-				})
-			);
-
-			return;
-		}
-
-		try {
-			this._botDataProducer.send(text);
-		} catch (error) {
-			logger.error('bot DataProducer.send() failed:%o', error);
-
-			store.dispatch(
-				requestActions.notify({
-					type: 'error',
-					text: `bot DataProducer.send() failed: ${error}`,
-				})
-			);
-		}
-	}
-
 	changeDisplayName(displayName) {
 		logger.debug('changeDisplayName() [displayName:"%s"]', displayName);
 
@@ -2421,6 +2297,9 @@ export default class RoomClient {
 		logger.debug('_joinRoom()');
 
 		try {
+			// Initialize Socket.IO connection for chat
+			this._initializeChatSocket();
+
 			logger.debug('_joinRoom() | using mediasoupClient.Device.factory()');
 
 			this._mediasoupDevice = await mediasoupClient.Device.factory({
@@ -2836,5 +2715,151 @@ export default class RoomClient {
 		else throw new Error('video.captureStream() not supported');
 
 		return this._externalVideoStream;
+	}
+
+	_initializeChatSocket() {
+		if (this._chatSocket) {
+			return;
+		}
+
+		const url = `${window.location.protocol}//${this._chatSocketUrl}`;
+		const roomId = this._roomId;
+		const peerId = this._peerId;
+		const token = `${peerId}:${roomId}`;
+
+		logger.debug('_initializeChatSocket() [url:%s, token:%s]', url, token);
+
+		this._chatSocket = io(url, {
+			query: { token, appId: 'mediasoup-demo' },
+			transports: ['websocket'],
+			reconnection: true,
+			reconnectionDelay: 1000,
+			reconnectionDelayMax: 5000,
+			reconnectionAttempts: Infinity,
+		});
+
+		this._chatSocket.on('connect', () => {
+			logger.debug('Chat socket connected');
+			// Request chat history
+			this._chatSocket.emit('chat:getHistory', { lastSeq: -1 }, (response) => {
+				if (response.error) {
+					logger.error('Failed to get chat history:', response.error);
+					return;
+				}
+				if (response.messages) {
+					response.messages.forEach(msg => {
+						store.dispatch(
+							stateActions.addChatMessage({
+								id: msg.id,
+								displayName: msg.displayName,
+								text: msg.content,
+								time: msg.time,
+								me: msg.senderId === peerId,
+								status: 'sent',
+								replyToMessageId: msg.replyToMessageId,
+							})
+						);
+					});
+				}
+			});
+		});
+
+		this._chatSocket.on('disconnect', () => {
+			logger.debug('Chat socket disconnected');
+		});
+
+		this._chatSocket.on('chat:message', (data) => {
+			logger.debug('Received chat message [id:%s]', data.data.id);
+
+			const message = data.data;
+
+			store.dispatch(
+				stateActions.addChatMessage({
+					id: message.id,
+					displayName: message.displayName,
+					text: message.content,
+					time: message.time,
+					me: message.senderId === peerId,
+					status: 'sent',
+					replyToMessageId: message.replyToMessageId,
+				})
+			);
+		});
+
+		this._chatSocket.on('connect_error', (error) => {
+			logger.error('Chat socket error:', error);
+		});
+	}
+
+	sendChatMessage(text, replyToMessageId) {
+		logger.debug('sendChatMessage() [text:"%s"]', text);
+
+		if (!this._chatSocket || !this._chatSocket.connected) {
+			logger.error('Chat socket not connected');
+			store.dispatch(
+				requestActions.notify({
+					type: 'error',
+					text: 'Chat connection lost',
+				})
+			);
+			return;
+		}
+
+		const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+		// Optimistic insert
+		store.dispatch(
+			stateActions.addChatMessage({
+				id: clientId,
+				displayName: this._displayName || 'You',
+				text,
+				time: Date.now(),
+				me: true,
+				status: 'sending',
+				replyToMessageId,
+			})
+		);
+
+		this._chatSocket.emit(
+			'chat:send',
+			{ content: text, replyToMessageId },
+			(response) => {
+				if (response.error) {
+					logger.error('Failed to send chat message:', response.error);
+					store.dispatch(stateActions.updateChatMessageStatus(clientId, 'failed'));
+					store.dispatch(
+						requestActions.notify({
+							type: 'error',
+							text: `Chat send failed: ${response.error}`,
+						})
+					);
+				} else {
+					logger.debug('Chat message sent successfully');
+					store.dispatch(stateActions.updateChatMessageStatus(clientId, 'sent'));
+				}
+			}
+		);
+	}
+
+	sendBotMessage(text) {
+		logger.debug('sendBotMessage() [text:"%s"]', text);
+
+		if (!this._chatSocket || !this._chatSocket.connected) {
+			logger.error('Chat socket not connected');
+			return;
+		}
+
+		this._chatSocket.emit('bot:send', { content: text }, (response) => {
+			if (response.error) {
+				logger.error('Failed to send bot message:', response.error);
+			}
+		});
+	}
+
+	_closeChatSocket() {
+		if (this._chatSocket) {
+			this._chatSocket.disconnect();
+			this._chatSocket = null;
+		}
 	}
 }

@@ -240,6 +240,24 @@
 	padding: 60px 24px 80px;
 }
 
+@media (max-width: 768px) {
+	.lp-main {
+		padding: 48px 20px 60px;
+	}
+}
+
+@media (max-width: 576px) {
+	.lp-main {
+		padding: 40px 16px 50px;
+	}
+}
+
+@media (max-width: 375px) {
+	.lp-main {
+		padding: 32px 12px 45px;
+	}
+}
+
 /* ==================== HERO SECTION ==================== */
 .lp-hero {
 	text-align: center;
@@ -381,6 +399,24 @@
 		border-color var(--transition-normal),
 		box-shadow var(--transition-normal);
 	overflow: hidden;
+}
+
+@media (max-width: 768px) {
+	.lp-card {
+		padding: 28px;
+	}
+}
+
+@media (max-width: 576px) {
+	.lp-card {
+		padding: 24px;
+	}
+}
+
+@media (max-width: 375px) {
+	.lp-card {
+		padding: 20px;
+	}
 }
 
 .lp-card::before {

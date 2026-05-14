@@ -140,6 +140,7 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 		reactions: any[];
 		isEdited: boolean;
 		createdAt: number;
+		replyToMessageId?: string;
 	}[] = [];
 	#nextChatSeq: number = 0;
 	readonly #createdAt: Date;
@@ -299,28 +300,32 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 		senderId,
 		displayName,
 		content,
+		replyToMessageId,
 	}: {
 		senderId: string;
 		displayName: string;
 		content: string;
+		replyToMessageId?: string;
 	}): void {
+		const now = Date.now();
 		const message = {
-			id: `m_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+			id: `m_${now}_${Math.random().toString(36).substring(7)}`,
 			senderId,
 			displayName,
 			content,
-			time: Date.now(),
+			time: now,
 			seq: this.#nextChatSeq++,
 			conversationId: this.#roomId,
 			reactions: [],
 			isEdited: false,
-			createdAt: Date.now(),
+			createdAt: now,
+			...(replyToMessageId && { replyToMessageId }),
 		};
 
 		this.#chatHistory.push(message);
 
-		// Keep only last 50 messages.
-		if (this.#chatHistory.length > 50) {
+		// Keep only last 100 messages.
+		if (this.#chatHistory.length > 100) {
 			this.#chatHistory.shift();
 		}
 

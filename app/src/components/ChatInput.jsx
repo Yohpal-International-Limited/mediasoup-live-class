@@ -2,27 +2,18 @@ import React, { useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { withRoomContext } from '../RoomContext';
-// Chat SDK removed - feature disabled
-// import { useChat } from '@yohpal/chat-sdk-react';
 
 const BotMessageRegex = new RegExp('^@bot (.*)');
 
 const ChatInput = ({
 	roomClient,
-	chatClient,
 	connected,
 	chatDataProducer,
 	botDataProducer,
-	displayName,
-	peerId,
+	replyToMessage,
+	onClearReply,
 }) => {
 	const [text, setText] = useState('');
-	// We use the roomId as conversationId.
-	// We need to get roomId from roomClient or props.
-	const roomId =
-		roomClient._protooUrl.match(/roomId=([^&]+)/)?.[1] || 'default';
-
-	const { sendMessage } = useChat(chatClient, roomId);
 
 	const disabled = !connected || (!chatDataProducer && !botDataProducer);
 
@@ -40,13 +31,8 @@ const ChatInput = ({
 		const match = BotMessageRegex.exec(trimmedText);
 
 		if (!match) {
-			// Send via SDK
-			sendMessage(trimmedText).catch(err => {
-				console.error('Failed to send message via SDK:', err);
-				// Fallback to legacy mediasoup chat if SDK fails?
-				// The prompt says "ensure the chat part works perfectly" using the SDK.
-				roomClient.sendChatMessage(trimmedText);
-			});
+			roomClient.sendChatMessage(trimmedText, replyToMessage?.id);
+			onClearReply?.();
 		} else {
 			roomClient.sendBotMessage(match[1].trim());
 		}
@@ -60,45 +46,79 @@ const ChatInput = ({
 	};
 
 	return (
-		<div data-component="ChatInput" className="d-flex gap-2">
-			<textarea
-				placeholder={disabled ? 'Chat unavailable' : 'Type a message...'}
-				dir="auto"
-				autoComplete="off"
-				disabled={disabled}
-				value={text}
-				rows={1}
-				onChange={handleChange}
-				onKeyDown={handleKeyDown}
-			/>
-			<button
-				className="btn btn-sm d-flex align-items-center justify-content-center flex-shrink-0"
-				disabled={disabled || !text.trim()}
-				onClick={handleSend}
-				style={{
-					width: 36,
-					height: 36,
-					borderRadius: 8,
-					background: text.trim() ? '#C5A059' : 'rgba(197,160,89,0.15)',
-					border: 'none',
-					color: text.trim() ? '#050505' : 'rgba(245,245,245,0.3)',
-					transition: 'all 0.2s ease',
-				}}
-			>
-				<i className="fa-solid fa-paper-plane" style={{ fontSize: 13 }} />
-			</button>
-		</div>
+		<>
+			{replyToMessage && (
+				<div
+					style={{
+						fontSize: '12px',
+						opacity: 0.7,
+						padding: '6px 10px',
+						borderLeft: '2px solid #C5A059',
+						marginBottom: '4px',
+						display: 'flex',
+						justifyContent: 'space-between',
+						alignItems: 'center',
+					}}
+				>
+					<div>
+						<div>Replying to {replyToMessage.displayName}</div>
+						<div style={{ opacity: 0.6 }}>{replyToMessage.text.substring(0, 50)}...</div>
+					</div>
+					<button
+						className="btn btn-sm p-0"
+						style={{
+							color: '#999',
+							background: 'none',
+							border: 'none',
+						}}
+						onClick={onClearReply}
+						title="Cancel reply"
+					>
+						<i className="fa-solid fa-times" />
+					</button>
+				</div>
+			)}
+			<div data-component="ChatInput" className="d-flex gap-2">
+				<textarea
+					placeholder={disabled ? 'Chat unavailable' : 'Type a message...'}
+					dir="auto"
+					autoComplete="off"
+					disabled={disabled}
+					value={text}
+					rows={1}
+					onChange={handleChange}
+					onKeyDown={handleKeyDown}
+				/>
+				<button
+					className="btn btn-sm d-flex align-items-center justify-content-center flex-shrink-0"
+					disabled={disabled || !text.trim()}
+					onClick={handleSend}
+					style={{
+						width: 36,
+						height: 36,
+						borderRadius: 8,
+						background: text.trim() ? '#C5A059' : 'rgba(197,160,89,0.15)',
+						border: 'none',
+						color: text.trim() ? '#050505' : 'rgba(245,245,245,0.3)',
+						transition: 'all 0.2s ease',
+					}}
+				>
+					<i className="fa-solid fa-paper-plane" style={{ fontSize: 13 }} />
+				</button>
+			</div>
+		</>
 	);
 };
 
 ChatInput.propTypes = {
 	roomClient: PropTypes.any.isRequired,
-	chatClient: PropTypes.any.isRequired,
 	connected: PropTypes.bool.isRequired,
 	chatDataProducer: PropTypes.any,
 	botDataProducer: PropTypes.any,
 	displayName: PropTypes.string,
 	peerId: PropTypes.string,
+	replyToMessage: PropTypes.any,
+	onClearReply: PropTypes.func,
 };
 
 const mapStateToProps = state => {
