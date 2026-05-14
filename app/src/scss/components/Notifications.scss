@@ -19,8 +19,8 @@
 		backdrop-filter: blur(15px);
 		border-radius: 16px;
 		border: 1px solid rgba(197, 160, 89, 0.2);
-		box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-		color: #FFF;
+		box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+		color: #fff;
 		padding: 4px;
 		animation: toast-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -29,8 +29,20 @@
 			border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 			color: vars.$ics-gold;
 			padding: 10px 16px;
-			strong { font-weight: 700; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; }
-			.btn-close { filter: invert(1) grayscale(1) brightness(2); scale: 0.8; opacity: 0.5; &:hover { opacity: 1; } }
+			strong {
+				font-weight: 700;
+				text-transform: uppercase;
+				font-size: 0.7rem;
+				letter-spacing: 0.05em;
+			}
+			.btn-close {
+				filter: invert(1) grayscale(1) brightness(2);
+				scale: 0.8;
+				opacity: 0.5;
+				&:hover {
+					opacity: 1;
+				}
+			}
 		}
 
 		.toast-body {
@@ -44,6 +56,12 @@
 }
 
 @keyframes toast-slide-in {
-	from { transform: translateX(100%) scale(0.9); opacity: 0; }
-	to { transform: translateX(0) scale(1); opacity: 1; }
+	from {
+		transform: translateX(100%) scale(0.9);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0) scale(1);
+		opacity: 1;
+	}
 }

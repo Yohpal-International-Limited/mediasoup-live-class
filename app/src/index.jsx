@@ -61,7 +61,7 @@ async function run() {
 
 	const urlParser = new UrlParse(window.location.href, true);
 	const peerId = randomString({ length: 8 }).toLowerCase();
-	let roomId = urlParser.query.roomId;
+	const roomId = urlParser.query.roomId;
 	let displayName =
 		urlParser.query.displayName || (cookiesManager.getUser() || {}).displayName;
 	const handlerName = urlParser.query.handlerName || urlParser.query.handler;
@@ -155,8 +155,10 @@ async function run() {
 	const App = () => {
 		const [step, setStep] = React.useState(1);
 		const [client, setClient] = React.useState(null);
+		const [chatClient, setChatClient] = React.useState(null);
 		const [currentRoomId, setCurrentRoomId] = React.useState(roomId);
-		const [currentDisplayName, setCurrentDisplayName] = React.useState(displayName);
+		const [currentDisplayName, setCurrentDisplayName] =
+			React.useState(displayName);
 		const [joinMode, setJoinMode] = React.useState('create');
 
 		// Initialize client if we already have a room
@@ -207,6 +209,7 @@ async function run() {
 			window.CC = rClient;
 
 			setClient(rClient);
+			setChatClient(null);
 		};
 
 		const handleLeave = () => {
@@ -217,6 +220,7 @@ async function run() {
 			}
 
 			setClient(null);
+			setChatClient(null);
 			setCurrentRoomId(null);
 			setCurrentDisplayName(null);
 			setJoinMode('create');
@@ -237,7 +241,7 @@ async function run() {
 			setCurrentRoomId(joinRoomId);
 			setCurrentDisplayName(joinDisplayName);
 			setJoinMode(joinType);
-			
+
 			// Build shareable URL with only roomId
 			const baseUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
 			const inviteUrl = `${baseUrl}?roomId=${joinRoomId}`;
@@ -260,15 +264,38 @@ async function run() {
 		// Don't render Room until the roomClient has been initialized via useEffect
 		if (!client) {
 			return (
-				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#050505', color: '#C5A059', flexDirection: 'column', gap: 16 }}>
-					<i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '2rem' }} />
-					<span style={{ fontSize: '0.85rem', opacity: 0.6, letterSpacing: '0.08em', fontFamily: 'Inter, sans-serif' }}>CONNECTING TO SESSION...</span>
+				<div
+					style={{
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						height: '100vh',
+						background: '#050505',
+						color: '#C5A059',
+						flexDirection: 'column',
+						gap: 16,
+					}}
+				>
+					<i
+						className="fa-solid fa-spinner fa-spin"
+						style={{ fontSize: '2rem' }}
+					/>
+					<span
+						style={{
+							fontSize: '0.85rem',
+							opacity: 0.6,
+							letterSpacing: '0.08em',
+							fontFamily: 'Inter, sans-serif',
+						}}
+					>
+						CONNECTING TO SESSION...
+					</span>
 				</div>
 			);
 		}
 
 		return (
-			<RoomContext.Provider value={client}>
+			<RoomContext.Provider value={{ roomClient: client, chatClient }}>
 				<Room onLeave={handleLeave} joinMode={joinMode} />
 			</RoomContext.Provider>
 		);

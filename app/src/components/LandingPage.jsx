@@ -31,11 +31,13 @@ export default function LandingPage({ onJoin, initialRoomId }) {
 		}
 	}, []);
 
-	const handleNameChange = (e) => {
+	const handleNameChange = e => {
 		const name = e.target.value;
 		setUserName(name);
 		localStorage.setItem('streamtalk-user', name);
-		try { cookiesManager.setUser({ displayName: name }); } catch (_) {}
+		try {
+			cookiesManager.setUser({ displayName: name });
+		} catch (_) {}
 	};
 
 	const createAndJoin = () => {
@@ -48,7 +50,7 @@ export default function LandingPage({ onJoin, initialRoomId }) {
 		onJoin(roomId.trim(), userName || 'Student', 'join');
 	};
 
-	const handleKeyDown = (e) => {
+	const handleKeyDown = e => {
 		if (e.key === 'Enter') joinRoom();
 	};
 
@@ -64,7 +66,9 @@ export default function LandingPage({ onJoin, initialRoomId }) {
 			<nav className="lp-nav">
 				<a className="lp-nav-brand" href="#">
 					<img src="/images/logo.png" alt="ICS" className="lp-nav-logo" />
-					<span className="lp-nav-name">ICS <span>LIVE</span></span>
+					<span className="lp-nav-name">
+						ICS <span>LIVE</span>
+					</span>
 				</a>
 
 				<div className="lp-nav-links">
@@ -81,12 +85,11 @@ export default function LandingPage({ onJoin, initialRoomId }) {
 
 			<main className="lp-main">
 				<div className="lp-hero">
-					<div className="lp-hero-eyebrow">
-						Virtual Classroom Platform
-					</div>
+					<div className="lp-hero-eyebrow">Virtual Classroom Platform</div>
 					<h1 className="lp-hero-title">ICS LIVE</h1>
 					<p className="lp-hero-subtitle">
-						Advanced virtual classroom for excellence in education — built for educators and students.
+						Advanced virtual classroom for excellence in education — built for
+						educators and students.
 					</p>
 				</div>
 
@@ -122,7 +125,7 @@ export default function LandingPage({ onJoin, initialRoomId }) {
 							className="lp-card-input"
 							placeholder="CLASS-ID-000"
 							value={roomId}
-							onChange={(e) => setRoomId(e.target.value)}
+							onChange={e => setRoomId(e.target.value)}
 							onKeyDown={handleKeyDown}
 						/>
 

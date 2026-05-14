@@ -61,7 +61,13 @@ export const setRoomFaceDetection = flag => {
 	};
 };
 
-export const setMe = ({ peerId, displayName, displayNameSet, device, isHost }) => {
+export const setMe = ({
+	peerId,
+	displayName,
+	displayNameSet,
+	device,
+	isHost,
+}) => {
 	return {
 		type: 'SET_ME',
 		payload: { peerId, displayName, displayNameSet, device, isHost },

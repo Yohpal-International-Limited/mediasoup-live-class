@@ -50,6 +50,7 @@
 		"picocolors": "^1.1.1",
 		"pidusage": "^4.0.1",
 		"protoo-server": "^4.0.8",
+		"socket.io": "^4.8.3",
 		"supports-color": "^10.2.2"
 	},
 	"devDependencies": {

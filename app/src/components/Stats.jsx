@@ -42,7 +42,11 @@ class Stats extends React.Component {
 					<div className="modal-header">
 						<div className="title-group">
 							<i className="fa-solid fa-chart-line" />
-							<h3>{isMe ? 'My Connection Quality' : `Stats for ${peerDisplayName}`}</h3>
+							<h3>
+								{isMe
+									? 'My Connection Quality'
+									: `Stats for ${peerDisplayName}`}
+							</h3>
 						</div>
 						<button className="close-btn" onClick={onClose}>
 							<i className="fa-solid fa-xmark" />
@@ -65,10 +69,26 @@ class Stats extends React.Component {
 									<label>Live Metrics</label>
 								</div>
 								<div className="metrics-list">
-									{this._renderMetric('Round Trip Time', this._getMetricValue('rtt'), 'ms')}
-									{this._renderMetric('Packet Loss', this._getMetricValue('packetLoss'), '%')}
-									{this._renderMetric('Jitter', this._getMetricValue('jitter'), 'ms')}
-									{this._renderMetric('Resolution', this._getMetricValue('resolution'), '')}
+									{this._renderMetric(
+										'Round Trip Time',
+										this._getMetricValue('rtt'),
+										'ms'
+									)}
+									{this._renderMetric(
+										'Packet Loss',
+										this._getMetricValue('packetLoss'),
+										'%'
+									)}
+									{this._renderMetric(
+										'Jitter',
+										this._getMetricValue('jitter'),
+										'ms'
+									)}
+									{this._renderMetric(
+										'Resolution',
+										this._getMetricValue('resolution'),
+										''
+									)}
 								</div>
 							</div>
 						</div>
@@ -76,9 +96,18 @@ class Stats extends React.Component {
 						<div className="raw-details">
 							<label>Advanced Stream Details</label>
 							<div className="details-scroll">
-								{this._renderRawSection('Send Transport', this.state.sendTransportRemoteStats)}
-								{this._renderRawSection('Video Producer', this.state.videoProducerRemoteStats)}
-								{this._renderRawSection('Audio Producer', this.state.audioProducerRemoteStats)}
+								{this._renderRawSection(
+									'Send Transport',
+									this.state.sendTransportRemoteStats
+								)}
+								{this._renderRawSection(
+									'Video Producer',
+									this.state.videoProducerRemoteStats
+								)}
+								{this._renderRawSection(
+									'Audio Producer',
+									this.state.audioProducerRemoteStats
+								)}
 							</div>
 						</div>
 					</div>
@@ -109,17 +138,31 @@ class Stats extends React.Component {
 	}
 
 	_getMetricValue(key) {
-		const stats = this.state.videoProducerRemoteStats || this.state.videoConsumerRemoteStats || {};
-		const values = Array.isArray(stats) ? stats[0] : (stats.values ? Array.from(stats.values())[0] : {});
-		
+		const stats =
+			this.state.videoProducerRemoteStats ||
+			this.state.videoConsumerRemoteStats ||
+			{};
+		const values = Array.isArray(stats)
+			? stats[0]
+			: stats.values
+				? Array.from(stats.values())[0]
+				: {};
+
 		if (!values) return 'N/A';
 
-		switch(key) {
-			case 'rtt': return values.roundTripTime || 'N/A';
-			case 'packetLoss': return values.fractionLost ? Math.round(values.fractionLost * 100) : '0';
-			case 'jitter': return values.jitter ? Math.round(values.jitter * 1000) : 'N/A';
-			case 'resolution': return values.width ? `${values.width}x${values.height}` : 'N/A';
-			default: return 'N/A';
+		switch (key) {
+			case 'rtt':
+				return values.roundTripTime || 'N/A';
+			case 'packetLoss':
+				return values.fractionLost
+					? Math.round(values.fractionLost * 100)
+					: '0';
+			case 'jitter':
+				return values.jitter ? Math.round(values.jitter * 1000) : 'N/A';
+			case 'resolution':
+				return values.width ? `${values.width}x${values.height}` : 'N/A';
+			default:
+				return 'N/A';
 		}
 	}
 
@@ -155,42 +198,43 @@ class Stats extends React.Component {
 
 	_initChart() {
 		if (this._chart) this._chart.destroy();
-		
+
 		const ctx = this._chartRef.current.getContext('2d');
 		this._chart = new Chart(ctx, {
 			type: 'line',
 			data: {
 				labels: new Array(20).fill(''),
-				datasets: [{
-					label: 'Bitrate',
-					data: new Array(20).fill(0),
-					borderColor: '#C5A059',
-					backgroundColor: 'rgba(197, 160, 89, 0.1)',
-					borderWidth: 2,
-					fill: true,
-					tension: 0.4,
-					pointRadius: 0
-				}]
+				datasets: [
+					{
+						label: 'Bitrate',
+						data: new Array(20).fill(0),
+						borderColor: '#C5A059',
+						backgroundColor: 'rgba(197, 160, 89, 0.1)',
+						borderWidth: 2,
+						fill: true,
+						tension: 0.4,
+						pointRadius: 0,
+					},
+				],
 			},
 			options: {
 				responsive: true,
 				maintainAspectRatio: false,
 				plugins: { legend: { display: false } },
 				scales: {
-					y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } } },
-					x: { display: false }
-				}
-			}
+					y: {
+						beginAtZero: true,
+						grid: { color: 'rgba(255,255,255,0.05)' },
+						ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } },
+					},
+					x: { display: false },
+				},
+			},
 		});
 	}
 
 	async _start() {
-		const {
-			roomClient,
-			isMe,
-			audioConsumerId,
-			videoConsumerId,
-		} = this.props;
+		const { roomClient, isMe, audioConsumerId, videoConsumerId } = this.props;
 
 		let sendTransportRemoteStats = null;
 		let audioProducerRemoteStats = null;
@@ -200,12 +244,15 @@ class Stats extends React.Component {
 
 		try {
 			if (isMe) {
-				sendTransportRemoteStats = await roomClient.getSendTransportRemoteStats();
+				sendTransportRemoteStats =
+					await roomClient.getSendTransportRemoteStats();
 				audioProducerRemoteStats = await roomClient.getAudioRemoteStats();
 				videoProducerRemoteStats = await roomClient.getVideoRemoteStats();
 			} else {
-				audioConsumerRemoteStats = await roomClient.getConsumerRemoteStats(audioConsumerId);
-				videoConsumerRemoteStats = await roomClient.getConsumerRemoteStats(videoConsumerId);
+				audioConsumerRemoteStats =
+					await roomClient.getConsumerRemoteStats(audioConsumerId);
+				videoConsumerRemoteStats =
+					await roomClient.getConsumerRemoteStats(videoConsumerId);
 			}
 		} catch (error) {}
 
@@ -224,7 +271,11 @@ class Stats extends React.Component {
 
 	_updateChart(stats) {
 		if (!this._chart || !stats) return;
-		const values = Array.isArray(stats) ? stats[0] : (stats.values ? Array.from(stats.values())[0] : {});
+		const values = Array.isArray(stats)
+			? stats[0]
+			: stats.values
+				? Array.from(stats.values())[0]
+				: {};
 		const bitrate = values.bitrate ? Math.round(values.bitrate / 1000) : 0;
 
 		this._bitrateHistory.push(bitrate);

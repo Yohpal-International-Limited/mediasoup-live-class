@@ -88,6 +88,23 @@ export type RoomEvents = {
 	 * Emitted to obtain the rtcstats server URL.
 	 */
 	'get-rtcstats-url': [callback: (rtcstatsUrl?: string) => void];
+	/**
+	 * Emitted when a new chat message is added.
+	 */
+	'chat-message': [
+		{
+			id: string;
+			senderId: string;
+			displayName: string;
+			content: string;
+			time: number;
+			seq: number;
+			conversationId: string;
+			reactions: any[];
+			isEdited: boolean;
+			createdAt: number;
+		},
+	];
 };
 
 export class Room extends EnhancedEventEmitter<RoomEvents> {
@@ -113,11 +130,18 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 	readonly #joiningBroadcasterPeers: Map<string, BroadcasterPeer> = new Map();
 	readonly #broadcasterPeers: Map<string, BroadcasterPeer> = new Map();
 	readonly #chatHistory: {
-		clientId: string;
+		id: string;
+		senderId: string;
 		displayName: string;
-		text: string;
+		content: string;
 		time: number;
+		seq: number;
+		conversationId: string;
+		reactions: any[];
+		isEdited: boolean;
+		createdAt: number;
 	}[] = [];
+	#nextChatSeq: number = 0;
 	readonly #createdAt: Date;
 	#closed: boolean = false;
 
@@ -269,6 +293,47 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 				broadcasterPeer.serialize()
 			),
 		};
+	}
+
+	addChatMessage({
+		senderId,
+		displayName,
+		content,
+	}: {
+		senderId: string;
+		displayName: string;
+		content: string;
+	}): void {
+		const message = {
+			id: `m_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+			senderId,
+			displayName,
+			content,
+			time: Date.now(),
+			seq: this.#nextChatSeq++,
+			conversationId: this.#roomId,
+			reactions: [],
+			isEdited: false,
+			createdAt: Date.now(),
+		};
+
+		this.#chatHistory.push(message);
+
+		// Keep only last 50 messages.
+		if (this.#chatHistory.length > 50) {
+			this.#chatHistory.shift();
+		}
+
+		this.emit('chat-message', message);
+	}
+
+	getChatMessages(lastSeq: number = -1): any[] {
+		return this.#chatHistory.filter(msg => msg.seq > lastSeq);
+	}
+
+	getPeerDisplayName(peerId: string): string | undefined {
+		const peer = this.#peers.get(peerId) || this.#joiningPeers.get(peerId);
+		return peer?.displayName;
 	}
 
 	getBroadcasterPeer(peerId: PeerId): BroadcasterPeer | undefined {
@@ -504,7 +569,14 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 
 			// Send chat history to newly joined peer.
 			if (this.#chatHistory.length > 0) {
-				peer.notify('chatHistory', { messages: this.#chatHistory });
+				peer.notify('chatHistory', {
+					messages: this.#chatHistory.map(msg => ({
+						clientId: msg.id,
+						displayName: msg.displayName,
+						text: msg.content,
+						time: msg.time,
+					})),
+				});
 			}
 		});
 
@@ -685,13 +757,12 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 			}
 		});
 
-		peer.on('chat-sent', ({ clientId, text, displayName, time }) => {
-			this.#chatHistory.push({ clientId, displayName, text, time });
-
-			// Keep only last 50 messages.
-			if (this.#chatHistory.length > 50) {
-				this.#chatHistory.shift();
-			}
+		peer.on('chat-sent', ({ text, displayName }) => {
+			this.addChatMessage({
+				senderId: peer.id,
+				displayName,
+				content: text,
+			});
 		});
 
 		peer.on(

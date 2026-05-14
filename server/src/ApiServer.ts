@@ -153,6 +153,24 @@ export class ApiServer extends EnhancedEventEmitter<ApiServerEvents> {
 		);
 
 		/**
+		 * API GET resource that returns chat messages for sync.
+		 */
+		this.#expressApp.get(
+			'/api/chat/sync/:roomId',
+			async (req: ApiServerExpressRequest, res, next) => {
+				const lastSeq = Number(req.query['lastSeq']) || -1;
+
+				try {
+					const messages = req.room!.getChatMessages(lastSeq);
+
+					res.status(200).json(messages);
+				} catch (error) {
+					next(error);
+				}
+			}
+		);
+
+		/**
 		 * API GET resource that returns the mediasoup Router RTP capabilities of
 		 * the Room.
 		 */

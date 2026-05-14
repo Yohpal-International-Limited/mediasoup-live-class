@@ -8,7 +8,7 @@ export default RoomContext;
 export function withRoomContext(Component) {
 	return props => (
 		<RoomContext.Consumer>
-			{roomClient => <Component {...props} roomClient={roomClient} />}
+			{context => <Component {...props} {...context} />}
 		</RoomContext.Consumer>
 	);
 }

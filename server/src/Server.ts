@@ -13,6 +13,7 @@ import { Logger } from './Logger';
 import { EnhancedEventEmitter } from './enhancedEvents';
 import { WsServer } from './WsServer';
 import { ApiServer } from './ApiServer';
+import { ChatServer } from './ChatServer';
 import { Room } from './Room';
 import { InvalidStateError, ForbiddenError, RoomNotFound } from './errors';
 import { clone } from './utils';
@@ -36,6 +37,7 @@ type ServerConstructorOptions = {
 	httpServer: https.Server | http.Server;
 	wsServer: WsServer;
 	apiServer: ApiServer;
+	chatServer: ChatServer;
 	networkThrottleSecret?: string;
 };
 
@@ -83,6 +85,7 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 	readonly #httpConnections: Set<net.Socket> = new Set();
 	readonly #wsServer: WsServer;
 	readonly #apiServer: ApiServer;
+	readonly #chatServer: ChatServer;
 	readonly #workersAndWebRtcServers: WorkersAndWebRtcServers = new Map();
 	#nextWorkerIdx: number = 0;
 	readonly #roomQueues: Map<RoomId, RoomData> = new Map();
@@ -105,12 +108,22 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 		const httpServer = await Server.createHttpServer(config);
 		const wsServer = WsServer.create({ httpServer, httpOriginHeader });
 		const apiServer = ApiServer.create({ httpOriginHeader });
-		const server = new Server({
+
+		let server: Server;
+
+		const chatServer = new ChatServer(httpServer, (roomId) => 
+		{
+			// @ts-ignore
+			return server.getRoom(roomId);
+		});
+
+		server = new Server({
 			config,
 			workersAndWebRtcServers,
 			httpServer,
 			wsServer,
 			apiServer,
+			chatServer,
 			networkThrottleSecret,
 		});
 
@@ -227,6 +240,7 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 		httpServer,
 		wsServer,
 		apiServer,
+		chatServer,
 		networkThrottleSecret,
 	}: ServerConstructorOptions) {
 		super();
@@ -238,6 +252,7 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 		this.#httpServer = httpServer;
 		this.#wsServer = wsServer;
 		this.#apiServer = apiServer;
+		this.#chatServer = chatServer;
 		this.#networkThrottleSecret = networkThrottleSecret;
 		this.#createdAt = new Date();
 
@@ -315,6 +330,10 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 
 	isNetworkThrottleEnabled(): boolean {
 		return this.#networkThrottleEnabled;
+	}
+
+	getRoom(roomId: RoomId): Room | undefined {
+		return this.#roomQueues.get(roomId)?.room;
 	}
 
 	/**
@@ -607,6 +626,10 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 	}
 
 	private handleRoom(room: Room): void {
+		room.on('chat-message', message => {
+			this.#chatServer.broadcastMessage(room.id, message);
+		});
+
 		room.on('closed', () => {
 			const roomData = this.#roomQueues.get(room.id);
 

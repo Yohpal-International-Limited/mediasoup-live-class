@@ -67,8 +67,15 @@ class Room extends React.Component {
 
 	render() {
 		const {
-			roomClient, room, me, audioProducer, videoProducer, peers,
-			amActiveSpeaker, amSpeakingPeer, onRoomLinkCopy,
+			roomClient,
+			room,
+			me,
+			audioProducer,
+			videoProducer,
+			peers,
+			amActiveSpeaker,
+			amSpeakingPeer,
+			onRoomLinkCopy,
 		} = this.props;
 
 		const { darkMode, sidePanelOpen, activePanelTab } = this.state;
@@ -81,7 +88,8 @@ class Room extends React.Component {
 
 		let webcamState;
 		if (!me.canSendWebcam) webcamState = 'unsupported';
-		else if (videoProducer && videoProducer.type !== 'share') webcamState = 'on';
+		else if (videoProducer && videoProducer.type !== 'share')
+			webcamState = 'on';
 		else webcamState = 'off';
 
 		let shareState;
@@ -91,7 +99,9 @@ class Room extends React.Component {
 
 		const peerCount = Object.keys(peers).length;
 		const viewerCount = peerCount + 1;
-		const initial = me.displayName ? me.displayName.charAt(0).toUpperCase() : '?';
+		const initial = me.displayName
+			? me.displayName.charAt(0).toUpperCase()
+			: '?';
 
 		return (
 			<Appear duration={300}>
@@ -104,24 +114,28 @@ class Room extends React.Component {
 							<img src="/images/logo.png" alt="ICS" className="sidebar-logo" />
 							<span className="brand-text">ICS LIVE</span>
 						</div>
-						
+
 						<div className="sidebar-nav">
-							<button 
-								className={classnames('nav-item', { active: activePanelTab === 'people' })}
+							<button
+								className={classnames('nav-item', {
+									active: activePanelTab === 'people',
+								})}
 								onClick={() => this.setState({ activePanelTab: 'people' })}
 							>
 								<i className="fa-solid fa-users" />
 								<span>Participants</span>
 								<span className="badge ms-auto">{viewerCount}</span>
 							</button>
-							<button 
-								className={classnames('nav-item', { active: activePanelTab === 'chat' })}
+							<button
+								className={classnames('nav-item', {
+									active: activePanelTab === 'chat',
+								})}
 								onClick={() => this.setState({ activePanelTab: 'chat' })}
 							>
 								<i className="fa-solid fa-comment-dots" />
 								<span>Chat</span>
 							</button>
-							<button 
+							<button
 								className="nav-item"
 								onClick={() => {
 									clipboardCopy(room.url).then(onRoomLinkCopy);
@@ -134,7 +148,7 @@ class Room extends React.Component {
 										timer: 3000,
 										showConfirmButton: false,
 										background: '#0A2F1F',
-										color: '#F5F5F5'
+										color: '#F5F5F5',
 									});
 								}}
 							>
@@ -147,7 +161,11 @@ class Room extends React.Component {
 							{activePanelTab === 'chat' ? (
 								<div className="chat-container">
 									<div className="chat-header-brand">
-										<img src="/images/logo.png" alt="ICS" className="chat-logo" />
+										<img
+											src="/images/logo.png"
+											alt="ICS"
+											className="chat-logo"
+										/>
 										<span className="chat-brand-text">ICS LIVE</span>
 									</div>
 									<ChatMessages />
@@ -158,27 +176,45 @@ class Room extends React.Component {
 									<div className="peer-item">
 										<div className="peer-avatar">{initial}</div>
 										<div className="peer-info">
-											<span className="peer-name">{me.displayName} <span className="peer-tag">(Me)</span></span>
-											<span className="peer-role">{me.isHost ? 'Host' : (me.device?.name || 'Participant')}</span>
+											<span className="peer-name">
+												{me.displayName} <span className="peer-tag">(Me)</span>
+											</span>
+											<span className="peer-role">
+												{me.isHost ? 'Host' : me.device?.name || 'Participant'}
+											</span>
 										</div>
 										<div className="peer-indicators">
-											<div className={classnames('indicator', { off: micState === 'off' })}>
+											<div
+												className={classnames('indicator', {
+													off: micState === 'off',
+												})}
+											>
 												<i className="fa-solid fa-microphone" />
 											</div>
-											<div className={classnames('indicator', { off: webcamState === 'off' })}>
+											<div
+												className={classnames('indicator', {
+													off: webcamState === 'off',
+												})}
+											>
 												<i className="fa-solid fa-video" />
 											</div>
 										</div>
 									</div>
 									{Object.keys(peers).map(id => {
 										const p = peers[id];
-										const pInitial = p.displayName ? p.displayName.charAt(0).toUpperCase() : '?';
+										const pInitial = p.displayName
+											? p.displayName.charAt(0).toUpperCase()
+											: '?';
 										return (
 											<div key={id} className="peer-item">
 												<div className="peer-avatar">{pInitial}</div>
 												<div className="peer-info">
 													<span className="peer-name">{p.displayName}</span>
-													<span className="peer-role">{p.isHost ? 'Host' : (p.device?.name || 'Participant')}</span>
+													<span className="peer-role">
+														{p.isHost
+															? 'Host'
+															: p.device?.name || 'Participant'}
+													</span>
 												</div>
 												<div className="peer-indicators">
 													<div className="indicator">
@@ -200,11 +236,15 @@ class Room extends React.Component {
 					<main className="ics-main">
 						<header className="ics-header">
 							<div className="header-left">
-								<button 
+								<button
 									className="toggle-sidebar-btn"
-									onClick={() => this.setState({ sidePanelOpen: !sidePanelOpen })}
+									onClick={() =>
+										this.setState({ sidePanelOpen: !sidePanelOpen })
+									}
 								>
-									<i className={`fa-solid ${sidePanelOpen ? 'fa-indent' : 'fa-outdent'}`} />
+									<i
+										className={`fa-solid ${sidePanelOpen ? 'fa-indent' : 'fa-outdent'}`}
+									/>
 								</button>
 								<h1 className="session-title">Live Interactive Class</h1>
 								<span className="session-status">
@@ -228,7 +268,12 @@ class Room extends React.Component {
 
 						<div className="ics-video-grid-container">
 							<div className="video-grid">
-								<div className={classnames('video-tile-wrapper', { speaking: amSpeakingPeer, active: amActiveSpeaker })}>
+								<div
+									className={classnames('video-tile-wrapper', {
+										speaking: amSpeakingPeer,
+										active: amActiveSpeaker,
+									})}
+								>
 									<Me />
 								</div>
 								<Peers />
@@ -238,26 +283,57 @@ class Room extends React.Component {
 						<footer className="ics-controls">
 							<div className="controls-group">
 								<button
-									className={classnames('ctrl-btn', { active: micState === 'on', muted: micState === 'off' })}
-									onClick={() => { micState === 'on' ? roomClient.muteMic() : roomClient.unmuteMic(); }}
+									className={classnames('ctrl-btn', {
+										active: micState === 'on',
+										muted: micState === 'off',
+									})}
+									onClick={() => {
+										micState === 'on'
+											? roomClient.muteMic()
+											: roomClient.unmuteMic();
+									}}
 									data-tip={micState === 'on' ? 'Mute Mic' : 'Unmute Mic'}
 								>
-									<i className={`fa-solid ${micState === 'off' ? 'fa-microphone-slash' : 'fa-microphone'}`} />
+									<i
+										className={`fa-solid ${micState === 'off' ? 'fa-microphone-slash' : 'fa-microphone'}`}
+									/>
 									<span>{micState === 'on' ? 'Mute' : 'Unmute'}</span>
 								</button>
 								<button
-									className={classnames('ctrl-btn', { active: webcamState === 'on', muted: webcamState === 'off' })}
-									onClick={() => { webcamState === 'on' ? roomClient.disableWebcam() : roomClient.enableWebcam(); }}
+									className={classnames('ctrl-btn', {
+										active: webcamState === 'on',
+										muted: webcamState === 'off',
+									})}
+									onClick={() => {
+										webcamState === 'on'
+											? roomClient.disableWebcam()
+											: roomClient.enableWebcam();
+									}}
 									data-tip={webcamState === 'on' ? 'Stop Video' : 'Start Video'}
 								>
-									<i className={`fa-solid ${webcamState === 'off' ? 'fa-video-slash' : 'fa-video'}`} />
+									<i
+										className={`fa-solid ${webcamState === 'off' ? 'fa-video-slash' : 'fa-video'}`}
+									/>
 									<span>Video</span>
 								</button>
 								<button
-									className={classnames('ctrl-btn', { active: shareState === 'on', disabled: shareState === 'unsupported' })}
-									onClick={() => { shareState === 'on' ? roomClient.disableShare() : roomClient.enableShare(); }}
+									className={classnames('ctrl-btn', {
+										active: shareState === 'on',
+										disabled: shareState === 'unsupported',
+									})}
+									onClick={() => {
+										shareState === 'on'
+											? roomClient.disableShare()
+											: roomClient.enableShare();
+									}}
 									disabled={shareState === 'unsupported'}
-									data-tip={shareState === 'on' ? 'Stop Sharing' : shareState === 'unsupported' ? 'Sharing unavailable' : 'Share Screen'}
+									data-tip={
+										shareState === 'on'
+											? 'Stop Sharing'
+											: shareState === 'unsupported'
+												? 'Sharing unavailable'
+												: 'Share Screen'
+									}
 								>
 									<i className="fa-solid fa-display" />
 									<span>Share</span>
@@ -321,8 +397,12 @@ Room.propTypes = {
 
 const mapStateToProps = state => {
 	const producersArray = Object.values(state.producers);
-	const audioProducer = producersArray.find(p => p.track && p.track.kind === 'audio');
-	const videoProducer = producersArray.find(p => p.track && p.track.kind === 'video');
+	const audioProducer = producersArray.find(
+		p => p.track && p.track.kind === 'audio'
+	);
+	const videoProducer = producersArray.find(
+		p => p.track && p.track.kind === 'video'
+	);
 	return {
 		room: state.room,
 		me: state.me,
@@ -335,8 +415,13 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch => ({
-	onRoomLinkCopy: () => dispatch(requestActions.notify({ text: 'Room link copied to the clipboard' })),
+	onRoomLinkCopy: () =>
+		dispatch(
+			requestActions.notify({ text: 'Room link copied to the clipboard' })
+		),
 });
 
-const RoomContainer = withRoomContext(connect(mapStateToProps, mapDispatchToProps)(Room));
+const RoomContainer = withRoomContext(
+	connect(mapStateToProps, mapDispatchToProps)(Room)
+);
 export default RoomContainer;

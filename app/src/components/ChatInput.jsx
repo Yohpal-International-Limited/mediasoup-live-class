@@ -1,97 +1,104 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { withRoomContext } from '../RoomContext';
+// Chat SDK removed - feature disabled
+// import { useChat } from '@yohpal/chat-sdk-react';
 
 const BotMessageRegex = new RegExp('^@bot (.*)');
 
-class ChatInput extends React.Component {
-	constructor(props) {
-		super(props);
+const ChatInput = ({
+	roomClient,
+	chatClient,
+	connected,
+	chatDataProducer,
+	botDataProducer,
+	displayName,
+	peerId,
+}) => {
+	const [text, setText] = useState('');
+	// We use the roomId as conversationId.
+	// We need to get roomId from roomClient or props.
+	const roomId =
+		roomClient._protooUrl.match(/roomId=([^&]+)/)?.[1] || 'default';
 
-		this.state = {
-			text: '',
-		};
+	const { sendMessage } = useChat(chatClient, roomId);
 
-		this._textareaElem = null;
-	}
+	const disabled = !connected || (!chatDataProducer && !botDataProducer);
 
-	render() {
-		const { connected, chatDataProducer, botDataProducer } = this.props;
-
-		const { text } = this.state;
-
-		const disabled = !connected || (!chatDataProducer && !botDataProducer);
-
-		return (
-			<div data-component="ChatInput" className="d-flex gap-2">
-				<textarea
-					ref={elem => {
-						this._textareaElem = elem;
-					}}
-					placeholder={disabled ? 'Chat unavailable' : 'Type a message...'}
-					dir="auto"
-					autoComplete="off"
-					disabled={disabled}
-					value={text}
-					rows={1}
-					onChange={this.handleChange}
-					onKeyDown={this.handleKeyDown}
-				/>
-				<button
-					className="btn btn-sm d-flex align-items-center justify-content-center flex-shrink-0"
-					disabled={disabled || !text.trim()}
-					onClick={this.handleSend}
-					style={{
-						width: 36,
-						height: 36,
-						borderRadius: 8,
-						background: text.trim() ? '#C5A059' : 'rgba(197,160,89,0.15)',
-						border: 'none',
-						color: text.trim() ? '#050505' : 'rgba(245,245,245,0.3)',
-						transition: 'all 0.2s ease',
-					}}
-				>
-					<i className="fa-solid fa-paper-plane" style={{ fontSize: 13 }} />
-				</button>
-			</div>
-		);
-	}
-
-	handleChange = event => {
-		this.setState({ text: event.target.value });
+	const handleChange = event => {
+		setText(event.target.value);
 	};
 
-	handleSend = () => {
-		const text = this.state.text.trim();
+	const handleSend = () => {
+		const trimmedText = text.trim();
 
-		if (!text) return;
+		if (!trimmedText) return;
 
-		this.setState({ text: '' });
+		setText('');
 
-		const { roomClient } = this.props;
-		const match = BotMessageRegex.exec(text);
+		const match = BotMessageRegex.exec(trimmedText);
 
 		if (!match) {
-			roomClient.sendChatMessage(text);
+			// Send via SDK
+			sendMessage(trimmedText).catch(err => {
+				console.error('Failed to send message via SDK:', err);
+				// Fallback to legacy mediasoup chat if SDK fails?
+				// The prompt says "ensure the chat part works perfectly" using the SDK.
+				roomClient.sendChatMessage(trimmedText);
+			});
 		} else {
 			roomClient.sendBotMessage(match[1].trim());
 		}
 	};
 
-	handleKeyDown = event => {
+	const handleKeyDown = event => {
 		if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey) {
 			event.preventDefault();
-			this.handleSend();
+			handleSend();
 		}
 	};
-}
+
+	return (
+		<div data-component="ChatInput" className="d-flex gap-2">
+			<textarea
+				placeholder={disabled ? 'Chat unavailable' : 'Type a message...'}
+				dir="auto"
+				autoComplete="off"
+				disabled={disabled}
+				value={text}
+				rows={1}
+				onChange={handleChange}
+				onKeyDown={handleKeyDown}
+			/>
+			<button
+				className="btn btn-sm d-flex align-items-center justify-content-center flex-shrink-0"
+				disabled={disabled || !text.trim()}
+				onClick={handleSend}
+				style={{
+					width: 36,
+					height: 36,
+					borderRadius: 8,
+					background: text.trim() ? '#C5A059' : 'rgba(197,160,89,0.15)',
+					border: 'none',
+					color: text.trim() ? '#050505' : 'rgba(245,245,245,0.3)',
+					transition: 'all 0.2s ease',
+				}}
+			>
+				<i className="fa-solid fa-paper-plane" style={{ fontSize: 13 }} />
+			</button>
+		</div>
+	);
+};
 
 ChatInput.propTypes = {
 	roomClient: PropTypes.any.isRequired,
+	chatClient: PropTypes.any.isRequired,
 	connected: PropTypes.bool.isRequired,
 	chatDataProducer: PropTypes.any,
 	botDataProducer: PropTypes.any,
+	displayName: PropTypes.string,
+	peerId: PropTypes.string,
 };
 
 const mapStateToProps = state => {
@@ -107,6 +114,8 @@ const mapStateToProps = state => {
 		connected: state.room.state === 'connected',
 		chatDataProducer,
 		botDataProducer,
+		displayName: state.me.displayName,
+		peerId: state.me.peerId,
 	};
 };
 

@@ -729,7 +729,8 @@ export default class RoomClient {
 				}
 
 				case 'newPeer': {
-					const { peerId, displayName, device, isHost } = notification.data.peer;
+					const { peerId, displayName, device, isHost } =
+						notification.data.peer;
 					const peer = {
 						id: peerId,
 						displayName,
@@ -2132,21 +2133,16 @@ export default class RoomClient {
 			try {
 				await this._protoo.request('chatSent', {
 					clientId,
-					text,
+					text: message.text,
 					displayName: this._displayName || 'You',
 				});
 			} catch (ackError) {
-				logger.warn(
-					'sendChatMessage() | signaling ACK failed:%o',
-					ackError
-				);
+				logger.warn('sendChatMessage() | signaling ACK failed:%o', ackError);
 			}
 		} catch (error) {
 			logger.error('_sendChatMessageNow() | failed:%o', error);
 
-			store.dispatch(
-				stateActions.updateChatMessageStatus(clientId, 'failed')
-			);
+			store.dispatch(stateActions.updateChatMessageStatus(clientId, 'failed'));
 
 			store.dispatch(
 				requestActions.notify({
@@ -2511,7 +2507,10 @@ export default class RoomClient {
 						role: 'auto',
 					},
 					sctpParameters,
-					iceServers: [],
+					iceServers: [
+						{ urls: 'stun:stun.l.google.com:19302' },
+						{ urls: 'stun:stun1.l.google.com:19302' },
+					],
 					proprietaryConstraints: PC_PROPRIETARY_CONSTRAINTS,
 					additionalSettings: {
 						encodedInsertableStreams: this._e2eKey && e2e.isSupported(),
@@ -2623,7 +2622,10 @@ export default class RoomClient {
 						role: 'auto',
 					},
 					sctpParameters,
-					iceServers: [],
+					iceServers: [
+						{ urls: 'stun:stun.l.google.com:19302' },
+						{ urls: 'stun:stun1.l.google.com:19302' },
+					],
 					additionalSettings: {
 						encodedInsertableStreams: this._e2eKey && e2e.isSupported(),
 					},
@@ -2674,7 +2676,12 @@ export default class RoomClient {
 			);
 
 			for (const serializedPeer of peers) {
-				const { peerId, displayName, device, isHost: peerIsHost } = serializedPeer;
+				const {
+					peerId,
+					displayName,
+					device,
+					isHost: peerIsHost,
+				} = serializedPeer;
 				const peer = {
 					id: peerId,
 					displayName,

@@ -36,9 +36,17 @@ const me = (state = initialState, action) => {
 		}
 
 		case 'SET_ME': {
-			const { peerId, displayName, displayNameSet, device, isHost } = action.payload;
+			const { peerId, displayName, displayNameSet, device, isHost } =
+				action.payload;
 
-			return { ...state, id: peerId, displayName, displayNameSet, device, isHost };
+			return {
+				...state,
+				id: peerId,
+				displayName,
+				displayNameSet,
+				device,
+				isHost,
+			};
 		}
 
 		case 'SET_MEDIA_CAPABILITIES': {

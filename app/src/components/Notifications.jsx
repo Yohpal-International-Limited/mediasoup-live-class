@@ -21,7 +21,10 @@ const Notifications = ({ notifications, onClick }) => {
 							className={classnames('toast border-0', notification.type)}
 							role="alert"
 							style={{
-								background: notification.type === 'error' ? 'rgba(239,68,68,0.9)' : 'rgba(6,41,31,0.95)',
+								background:
+									notification.type === 'error'
+										? 'rgba(239,68,68,0.9)'
+										: 'rgba(6,41,31,0.95)',
 								color: '#fff',
 								backdropFilter: 'blur(12px)',
 								borderRadius: '10px',
@@ -30,15 +33,29 @@ const Notifications = ({ notifications, onClick }) => {
 							onClick={() => onClick(notification.id)}
 						>
 							<div className="toast-body d-flex align-items-start gap-2 p-3">
-								<i className={classnames('bi fs-5', TOAST_ICONS[notification.type] || 'bi-info-circle')}
-									style={{ color: notification.type === 'error' ? '#fff' : '#34d399' }} />
+								<i
+									className={classnames(
+										'bi fs-5',
+										TOAST_ICONS[notification.type] || 'bi-info-circle'
+									)}
+									style={{
+										color: notification.type === 'error' ? '#fff' : '#34d399',
+									}}
+								/>
 								<div className="flex-grow-1">
 									{notification.title && (
-										<div className="fw-semibold mb-1" style={{ fontSize: 13 }}>{notification.title}</div>
+										<div className="fw-semibold mb-1" style={{ fontSize: 13 }}>
+											{notification.title}
+										</div>
 									)}
-									<div style={{ fontSize: 12, opacity: 0.85 }}>{notification.text}</div>
+									<div style={{ fontSize: 12, opacity: 0.85 }}>
+										{notification.text}
+									</div>
 								</div>
-								<button className="btn-close btn-close-white btn-sm" style={{ fontSize: 10, opacity: 0.6 }} />
+								<button
+									className="btn-close btn-close-white btn-sm"
+									style={{ fontSize: 10, opacity: 0.6 }}
+								/>
 							</div>
 						</div>
 					</Appear>
