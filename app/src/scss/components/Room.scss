@@ -227,32 +227,6 @@
 				font-weight: 700;
 				border: 1px solid rgba(197, 160, 89, 0.1);
 			}
-
-			.user-profile {
-				display: flex;
-				align-items: center;
-				gap: 12px;
-
-				.avatar-small {
-					width: 36px;
-					height: 36px;
-					background: linear-gradient(135deg, vars.$ics-gold 0%, #e5c07b 100%);
-					border-radius: 12px;
-					display: flex;
-					align-items: center;
-					justify-content: center;
-					color: vars.$ics-black;
-					font-weight: 800;
-					font-size: 0.9rem;
-					box-shadow: 0 4px 15px rgba(197, 160, 89, 0.4);
-				}
-
-				.display-name {
-					font-size: 0.95rem;
-					font-weight: 600;
-					color: rgba(255, 255, 255, 0.9);
-				}
-			}
 		}
 	}
 }
@@ -270,9 +244,6 @@
 }
 
 @media (max-width: 992px) {
-	.ics-header .header-right .display-name {
-		display: none;
-	}
 	.ics-sidebar {
 		position: absolute;
 	}
