@@ -16,6 +16,7 @@ import Peers from './Peers';
 import Stats from './Stats';
 import Notifications from './Notifications';
 import NetworkThrottle from './NetworkThrottle';
+import HeaderProfileButton from './HeaderProfileButton';
 
 class Room extends React.Component {
 	constructor(props) {
@@ -259,10 +260,18 @@ class Room extends React.Component {
 									<span>{viewerCount}</span>
 								</div>
 								<div className="session-timer">00:00:00</div>
-								<div className="user-profile">
-									<div className="avatar-small">{initial}</div>
-									<span className="display-name">{me.displayName}</span>
-								</div>
+								<HeaderProfileButton
+									displayName={me.displayName}
+									isHost={me.isHost}
+									deviceName={me.device?.name}
+									onChangeDisplayName={displayName =>
+										roomClient.changeDisplayName(displayName)
+									}
+									onLeave={() => {
+										roomClient.close();
+										this.props.onLeave();
+									}}
+								/>
 							</div>
 						</header>
 
