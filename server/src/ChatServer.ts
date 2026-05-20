@@ -11,9 +11,11 @@ interface ChatMessage {
 	senderId: string;
 	displayName: string;
 	content: string;
-	timestamp: number;
+	time: number;
 	seq: number;
 	conversationId: string;
+	replyToMessageId?: string;
+	clientId?: string;
 }
 
 export class ChatServer {
@@ -62,6 +64,10 @@ export class ChatServer {
 				this.handleGetChatHistory(socket, data, callback);
 			});
 
+			socket.on('bot:send', (data, callback) => {
+				this.handleBotSend(socket, data, callback);
+			});
+
 			socket.on('disconnect', () => {
 				const roomId = (socket as any).roomId;
 				if (roomId) {
@@ -72,7 +78,7 @@ export class ChatServer {
 	}
 
 	private handleChatSend(socket: any, data: any, callback?: (arg0: any) => void): void {
-		const { content, replyToMessageId } = data;
+		const { content, replyToMessageId, clientId } = data;
 		const roomId = (socket as any).roomId;
 		const peerId = (socket as any).peerId;
 
@@ -107,6 +113,7 @@ export class ChatServer {
 			displayName,
 			content,
 			replyToMessageId,
+			clientId,
 		});
 
 		if (callback) callback({ success: true });
@@ -131,6 +138,39 @@ export class ChatServer {
 		logger.debug('sending chat history [roomId:%s, count:%d, lastSeq:%d]', roomId, messages.length, lastSeq);
 
 		if (callback) callback({ messages });
+	}
+
+	private handleBotSend(socket: any, data: any, callback?: (arg0: any) => void): void {
+		const { content } = data;
+		const roomId = (socket as any).roomId;
+		const peerId = (socket as any).peerId;
+
+		if (!content || typeof content !== 'string') {
+			if (callback) callback({ error: 'Content is required' });
+			return;
+		}
+
+		if (!roomId) {
+			if (callback) callback({ error: 'Not in a room' });
+			return;
+		}
+
+		const room = this.#getRoom(roomId);
+		if (!room) {
+			if (callback) callback({ error: 'Room not found' });
+			return;
+		}
+
+		const displayName = (room as any).getPeerDisplayName?.(peerId) || 'Guest';
+
+		// Add a message from the bot
+		room.addChatMessage({
+			senderId: 'bot',
+			displayName: 'Bot',
+			content: `${displayName} told me: '${content}'`,
+		});
+
+		if (callback) callback({ success: true });
 	}
 
 	private trackSocketInRoom(roomId: string, socketId: string): void {

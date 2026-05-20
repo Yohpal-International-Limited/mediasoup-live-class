@@ -64,8 +64,6 @@
 		"socket.io-client": "^4.7.5",
 		"sweetalert2": "^11.26.24",
 		"tailwind-merge": "^3.6.0",
-		"@yohpal/chat-sdk": "file:../chat_sdk/packages/sdk-core",
-		"@yohpal/chat-sdk-react": "file:../chat_sdk/packages/ui-web-react",
 		"toastr": "^2.1.4",
 		"url-parse": "1.5.10"
 	},

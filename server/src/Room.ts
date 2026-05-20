@@ -103,6 +103,8 @@ export type RoomEvents = {
 			reactions: any[];
 			isEdited: boolean;
 			createdAt: number;
+			replyToMessageId?: string;
+			clientId?: string;
 		},
 	];
 };
@@ -141,6 +143,7 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 		isEdited: boolean;
 		createdAt: number;
 		replyToMessageId?: string;
+		clientId?: string;
 	}[] = [];
 	#nextChatSeq: number = 0;
 	readonly #createdAt: Date;
@@ -301,11 +304,13 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 		displayName,
 		content,
 		replyToMessageId,
+		clientId,
 	}: {
 		senderId: string;
 		displayName: string;
 		content: string;
 		replyToMessageId?: string;
+		clientId?: string;
 	}): void {
 		const now = Date.now();
 		const message = {
@@ -320,6 +325,7 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 			isEdited: false,
 			createdAt: now,
 			...(replyToMessageId && { replyToMessageId }),
+			...(clientId && { clientId }),
 		};
 
 		this.#chatHistory.push(message);

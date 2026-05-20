@@ -15,7 +15,7 @@ const ChatInput = ({
 }) => {
 	const [text, setText] = useState('');
 
-	const disabled = !connected || (!chatDataProducer && !botDataProducer);
+	const disabled = !connected;
 
 	const handleChange = event => {
 		setText(event.target.value);

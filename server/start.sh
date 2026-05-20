@@ -76,7 +76,7 @@ log_info "detected local IP: \"${ip}\""
 # Set env variables (don't override if already set).
 export WATCH=${WATCH:="false"}
 export TERMINAL=${TERMINAL:="false"}
-export DEBUG=${DEBUG:="mediasoup-demo-server* *INFO* *WARN* *ERROR*"}
+export DEBUG=${DEBUG:="mediasoup-demo-server* mediasoup* *INFO* *WARN* *ERROR*"}
 export MEDIASOUP_LISTEN_IP=${MEDIASOUP_LISTEN_IP:="${ip}"}
 
 # Command line arguments override environment variables.

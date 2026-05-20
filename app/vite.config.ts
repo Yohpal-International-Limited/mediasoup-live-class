@@ -18,7 +18,7 @@ export default defineConfig(async () => {
 	try {
 		const { config } = await import(configFile);
 
-		host = config.domain;
+		host = process.env.VITE_HOST || config.domain;
 		cert = readTls(config.http.tls?.cert);
 		key = readTls(config.http.tls?.key);
 	} catch (error) {

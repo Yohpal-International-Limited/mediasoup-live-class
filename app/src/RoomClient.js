@@ -2747,10 +2747,22 @@ export default class RoomClient {
 					return;
 				}
 				if (response.messages) {
+					const { chatMessages } = store.getState();
+
 					response.messages.forEach(msg => {
+						if (
+							chatMessages.some(m =>
+								(msg.clientId && m.clientId === msg.clientId) ||
+								(m.id === msg.id)
+							)
+						) {
+							return;
+						}
+
 						store.dispatch(
 							stateActions.addChatMessage({
 								id: msg.id,
+								clientId: msg.clientId,
 								displayName: msg.displayName,
 								text: msg.content,
 								time: msg.time,
@@ -2773,13 +2785,27 @@ export default class RoomClient {
 
 			const message = data.data;
 
+			const { chatMessages } = store.getState();
+
+			if (
+				chatMessages.some(m =>
+					(message.clientId && m.clientId === message.clientId) ||
+					(m.id === message.id)
+				)
+			) {
+				logger.debug('Ignoring duplicated chat message [id:%s]', message.id);
+
+				return;
+			}
+
 			store.dispatch(
 				stateActions.addChatMessage({
 					id: message.id,
+					clientId: message.clientId,
 					displayName: message.displayName,
 					text: message.content,
 					time: message.time,
-					me: message.senderId === peerId,
+					me: message.senderId === this._peerId,
 					status: 'sent',
 					replyToMessageId: message.replyToMessageId,
 				})
@@ -2811,6 +2837,7 @@ export default class RoomClient {
 		store.dispatch(
 			stateActions.addChatMessage({
 				id: clientId,
+				clientId: clientId,
 				displayName: this._displayName || 'You',
 				text,
 				time: Date.now(),
@@ -2822,7 +2849,7 @@ export default class RoomClient {
 
 		this._chatSocket.emit(
 			'chat:send',
-			{ content: text, replyToMessageId },
+			{ content: text, replyToMessageId, clientId },
 			(response) => {
 				if (response.error) {
 					logger.error('Failed to send chat message:', response.error);
