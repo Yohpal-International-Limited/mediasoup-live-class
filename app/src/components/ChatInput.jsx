@@ -3,13 +3,11 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { withRoomContext } from '../RoomContext';
 
-const BotMessageRegex = new RegExp('^@bot (.*)');
 
 const ChatInput = ({
 	roomClient,
 	connected,
 	chatDataProducer,
-	botDataProducer,
 	replyToMessage,
 	onClearReply,
 }) => {
@@ -28,14 +26,8 @@ const ChatInput = ({
 
 		setText('');
 
-		const match = BotMessageRegex.exec(trimmedText);
-
-		if (!match) {
-			roomClient.sendChatMessage(trimmedText, replyToMessage?.id);
-			onClearReply?.();
-		} else {
-			roomClient.sendBotMessage(match[1].trim());
-		}
+		roomClient.sendChatMessage(trimmedText, replyToMessage?.id);
+		onClearReply?.();
 	};
 
 	const handleKeyDown = event => {
@@ -114,7 +106,7 @@ ChatInput.propTypes = {
 	roomClient: PropTypes.any.isRequired,
 	connected: PropTypes.bool.isRequired,
 	chatDataProducer: PropTypes.any,
-	botDataProducer: PropTypes.any,
+	chatDataProducer: PropTypes.any,
 	displayName: PropTypes.string,
 	peerId: PropTypes.string,
 	replyToMessage: PropTypes.any,
@@ -126,14 +118,10 @@ const mapStateToProps = state => {
 	const chatDataProducer = dataProducersArray.find(
 		dataProducer => dataProducer.label === 'chat'
 	);
-	const botDataProducer = dataProducersArray.find(
-		dataProducer => dataProducer.label === 'bot'
-	);
 
 	return {
 		connected: state.room.state === 'connected',
 		chatDataProducer,
-		botDataProducer,
 		displayName: state.me.displayName,
 		peerId: state.me.peerId,
 	};

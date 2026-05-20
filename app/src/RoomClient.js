@@ -83,6 +83,9 @@ export default class RoomClient {
 			device.flag
 		);
 
+		this._roomId = roomId;
+		this._peerId = peerId;
+
 		// Closed flag.
 		// @type {Boolean}
 		this._closed = false;
@@ -284,9 +287,6 @@ export default class RoomClient {
 		// @type {mediasoupClient.DataProducer}
 		this._chatDataProducer = null;
 
-		// Local bot DataProducer.
-		// @type {mediasoupClient.DataProducer}
-		this._botDataProducer = null;
 
 		// mediasoup Consumers.
 		// @type {Map<String, mediasoupClient.Consumer>}
@@ -545,22 +545,6 @@ export default class RoomClient {
 								protocol,
 								appData: { ...appData, peerId },
 							});
-
-							switch (appData.channel) {
-								case 'chat': {
-									// TODO: For debugging.
-									window.CHAT_DATA_CONSUMER = dataConsumer;
-
-									break;
-								}
-
-								case 'bot': {
-									// TODO: For debugging.
-									window.BOT_DATA_CONSUMER = dataConsumer;
-
-									break;
-								}
-							}
 
 							// Store in the map.
 							this._dataConsumers.set(dataConsumer.id, dataConsumer);
@@ -1995,84 +1979,6 @@ export default class RoomClient {
 		}
 	}
 
-	async enableBotDataProducer() {
-		logger.debug('enableBotDataProducer()');
-
-		// NOTE: Should enable this code but it's useful for testing.
-		// if (this._botDataProducer)
-		// 	return;
-
-		try {
-			// Create chat DataProducer.
-			this._botDataProducer = await this._sendTransport.produceData({
-				// ordered: false,
-				// maxPacketLifeTime: 2000,
-				ordered: true,
-				label: 'bot',
-				priority: 'medium',
-				appData: { channel: 'bot' },
-			});
-
-			// TODO: For debugging.
-			window.BOT_DATA_PRODUCER = this._botDataProducer;
-
-			store.dispatch(
-				stateActions.addDataProducer({
-					id: this._botDataProducer.id,
-					sctpStreamParameters: this._botDataProducer.sctpStreamParameters,
-					label: this._botDataProducer.label,
-					protocol: this._botDataProducer.protocol,
-				})
-			);
-
-			this._botDataProducer.on('transportclose', () => {
-				this._botDataProducer = null;
-			});
-
-			this._botDataProducer.on('open', () => {
-				logger.debug('bot DataProducer "open" event');
-			});
-
-			this._botDataProducer.on('close', () => {
-				logger.error('bot DataProducer "close" event');
-
-				this._botDataProducer = null;
-
-				store.dispatch(
-					requestActions.notify({
-						type: 'error',
-						text: 'Bot DataProducer closed',
-					})
-				);
-			});
-
-			this._botDataProducer.on('error', error => {
-				logger.error('bot DataProducer "error" event:%o', error);
-
-				store.dispatch(
-					requestActions.notify({
-						type: 'error',
-						text: `Bot DataProducer error: ${error}`,
-					})
-				);
-			});
-
-			this._botDataProducer.on('bufferedamountlow', () => {
-				logger.debug('bot DataProducer "bufferedamountlow" event');
-			});
-		} catch (error) {
-			logger.error('enableBotDataProducer() | failed:%o', error);
-
-			store.dispatch(
-				requestActions.notify({
-					type: 'error',
-					text: `Error enabling bot DataProducer: ${error}`,
-				})
-			);
-
-			throw error;
-		}
-	}
 
 	changeDisplayName(displayName) {
 		logger.debug('changeDisplayName() [displayName:"%s"]', displayName);
@@ -2171,19 +2077,6 @@ export default class RoomClient {
 		return stats;
 	}
 
-	async getBotDataProducerRemoteStats() {
-		logger.debug('getBotDataProducerRemoteStats()');
-
-		const dataProducer = this._botDataProducer;
-
-		if (!dataProducer) return;
-
-		const { stats } = await this._protoo.request('getDataProducerStats', {
-			dataProducerId: dataProducer.id,
-		});
-
-		return stats;
-	}
 
 	async getDataConsumerRemoteStats(dataConsumerId) {
 		logger.debug('getDataConsumerRemoteStats()');
@@ -2297,9 +2190,6 @@ export default class RoomClient {
 		logger.debug('_joinRoom()');
 
 		try {
-			// Initialize Socket.IO connection for chat
-			this._initializeChatSocket();
-
 			logger.debug('_joinRoom() | using mediasoupClient.Device.factory()');
 
 			this._mediasoupDevice = await mediasoupClient.Device.factory({
@@ -2340,7 +2230,7 @@ export default class RoomClient {
 			//
 			// Just get access to the mic and DO NOT close the mic track for a while.
 			// Super hack!
-			{
+			try {
 				const stream = await navigator.mediaDevices.getUserMedia({
 					audio: true,
 				});
@@ -2349,6 +2239,8 @@ export default class RoomClient {
 				audioTrack.enabled = false;
 
 				setTimeout(() => audioTrack.stop(), 120000);
+			} catch (error) {
+				logger.warn('_joinRoom() | autoplay policy hack failed: %o', error);
 			}
 
 			// Create mediasoup Transport for sending (unless we don't want to produce).
@@ -2611,7 +2503,6 @@ export default class RoomClient {
 
 				if (this._useDataChannel) {
 					this.enableChatDataProducer();
-					this.enableBotDataProducer();
 				}
 			}
 
@@ -2717,176 +2608,41 @@ export default class RoomClient {
 		return this._externalVideoStream;
 	}
 
-	_initializeChatSocket() {
-		if (this._chatSocket) {
-			return;
-		}
-
-		const url = `${window.location.protocol}//${this._chatSocketUrl}`;
-		const roomId = this._roomId;
-		const peerId = this._peerId;
-		const token = `${peerId}:${roomId}`;
-
-		logger.debug('_initializeChatSocket() [url:%s, token:%s]', url, token);
-
-		this._chatSocket = io(url, {
-			query: { token, appId: 'mediasoup-demo' },
-			transports: ['websocket'],
-			reconnection: true,
-			reconnectionDelay: 1000,
-			reconnectionDelayMax: 5000,
-			reconnectionAttempts: Infinity,
-		});
-
-		this._chatSocket.on('connect', () => {
-			logger.debug('Chat socket connected');
-			// Request chat history
-			this._chatSocket.emit('chat:getHistory', { lastSeq: -1 }, (response) => {
-				if (response.error) {
-					logger.error('Failed to get chat history:', response.error);
-					return;
-				}
-				if (response.messages) {
-					const { chatMessages } = store.getState();
-
-					response.messages.forEach(msg => {
-						if (
-							chatMessages.some(m =>
-								(msg.clientId && m.clientId === msg.clientId) ||
-								(m.id === msg.id)
-							)
-						) {
-							return;
-						}
-
-						store.dispatch(
-							stateActions.addChatMessage({
-								id: msg.id,
-								clientId: msg.clientId,
-								displayName: msg.displayName,
-								text: msg.content,
-								time: msg.time,
-								me: msg.senderId === peerId,
-								status: 'sent',
-								replyToMessageId: msg.replyToMessageId,
-							})
-						);
-					});
-				}
-			});
-		});
-
-		this._chatSocket.on('disconnect', () => {
-			logger.debug('Chat socket disconnected');
-		});
-
-		this._chatSocket.on('chat:message', (data) => {
-			logger.debug('Received chat message [id:%s]', data.data.id);
-
-			const message = data.data;
-
-			const { chatMessages } = store.getState();
-
-			if (
-				chatMessages.some(m =>
-					(message.clientId && m.clientId === message.clientId) ||
-					(m.id === message.id)
-				)
-			) {
-				logger.debug('Ignoring duplicated chat message [id:%s]', message.id);
-
-				return;
-			}
-
-			store.dispatch(
-				stateActions.addChatMessage({
-					id: message.id,
-					clientId: message.clientId,
-					displayName: message.displayName,
-					text: message.content,
-					time: message.time,
-					me: message.senderId === this._peerId,
-					status: 'sent',
-					replyToMessageId: message.replyToMessageId,
-				})
-			);
-		});
-
-		this._chatSocket.on('connect_error', (error) => {
-			logger.error('Chat socket error:', error);
-		});
-	}
-
-	sendChatMessage(text, replyToMessageId) {
+	async sendChatMessage(text) {
 		logger.debug('sendChatMessage() [text:"%s"]', text);
 
-		if (!this._chatSocket || !this._chatSocket.connected) {
-			logger.error('Chat socket not connected');
+		if (!this._chatDataProducer) {
 			store.dispatch(
 				requestActions.notify({
 					type: 'error',
-					text: 'Chat connection lost',
+					text: 'No chat DataProducer',
 				})
 			);
+
 			return;
 		}
 
-		const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+		try {
+			this._chatDataProducer.send(text);
 
-		// Optimistic insert
-		store.dispatch(
-			stateActions.addChatMessage({
-				id: clientId,
-				clientId: clientId,
-				displayName: this._displayName || 'You',
-				text,
-				time: Date.now(),
-				me: true,
-				status: 'sending',
-				replyToMessageId,
-			})
-		);
+			store.dispatch(
+				stateActions.addChatMessage({
+					id: `${Date.now()}-${this._peerId}`,
+					displayName: this._displayName || 'You',
+					text: text,
+					time: Date.now(),
+					me: true,
+				})
+			);
+		} catch (error) {
+			logger.error('chat DataProducer.send() failed:%o', error);
 
-		this._chatSocket.emit(
-			'chat:send',
-			{ content: text, replyToMessageId, clientId },
-			(response) => {
-				if (response.error) {
-					logger.error('Failed to send chat message:', response.error);
-					store.dispatch(stateActions.updateChatMessageStatus(clientId, 'failed'));
-					store.dispatch(
-						requestActions.notify({
-							type: 'error',
-							text: `Chat send failed: ${response.error}`,
-						})
-					);
-				} else {
-					logger.debug('Chat message sent successfully');
-					store.dispatch(stateActions.updateChatMessageStatus(clientId, 'sent'));
-				}
-			}
-		);
-	}
-
-	sendBotMessage(text) {
-		logger.debug('sendBotMessage() [text:"%s"]', text);
-
-		if (!this._chatSocket || !this._chatSocket.connected) {
-			logger.error('Chat socket not connected');
-			return;
-		}
-
-		this._chatSocket.emit('bot:send', { content: text }, (response) => {
-			if (response.error) {
-				logger.error('Failed to send bot message:', response.error);
-			}
-		});
-	}
-
-	_closeChatSocket() {
-		if (this._chatSocket) {
-			this._chatSocket.disconnect();
-			this._chatSocket = null;
+			store.dispatch(
+				requestActions.notify({
+					type: 'error',
+					text: `chat DataProducer.send() failed: ${error}`,
+				})
+			);
 		}
 	}
 }

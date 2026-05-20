@@ -113,7 +113,7 @@ export type PlainTransportRemoteData = {
 
 export type Source = 'audio' | 'video' | 'screensharing';
 
-export type Channel = 'chat' | 'bot';
+export type Channel = 'chat';
 
 export type PeerProducersInfo = {
 	peerId: PeerId;
@@ -168,12 +168,8 @@ export type PeerDataProducerAppData = {
 	channel: Channel;
 };
 
-export type BotDataProducerAppData = {
-	channel: Extract<Channel, 'bot'>;
-};
 
 export type DataConsumerAppData = {
-	// Unset in Bot.
 	peerId?: PeerId;
 	channel: Channel;
 };

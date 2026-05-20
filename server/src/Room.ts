@@ -5,9 +5,9 @@ import type * as throttleTypes from '@sitespeed.io/throttle';
 
 import { Logger } from './Logger';
 import { EnhancedEventEmitter } from './enhancedEvents';
-import { Bot } from './Bot';
 import { Peer } from './Peer';
 import { BroadcasterPeer } from './BroadcasterPeer';
+import { ChatManager } from './chatmoduledemo';
 import {
 	RequestNameForRoom,
 	RequestApiMethod,
@@ -55,7 +55,6 @@ type RoomConstructorOptions = {
 	audioLevelObserver: mediasoupTypes.AudioLevelObserver;
 	activeSpeakerObserver: mediasoupTypes.ActiveSpeakerObserver;
 	protooRoom: protooTypes.Room;
-	bot: Bot;
 };
 
 export type RoomEvents = {
@@ -88,25 +87,7 @@ export type RoomEvents = {
 	 * Emitted to obtain the rtcstats server URL.
 	 */
 	'get-rtcstats-url': [callback: (rtcstatsUrl?: string) => void];
-	/**
-	 * Emitted when a new chat message is added.
-	 */
-	'chat-message': [
-		{
-			id: string;
-			senderId: string;
-			displayName: string;
-			content: string;
-			time: number;
-			seq: number;
-			conversationId: string;
-			reactions: any[];
-			isEdited: boolean;
-			createdAt: number;
-			replyToMessageId?: string;
-			clientId?: string;
-		},
-	];
+
 };
 
 export class Room extends EnhancedEventEmitter<RoomEvents> {
@@ -126,26 +107,11 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 		mediasoupTypes.Producer<ProducerAppData>
 	> = new Map();
 	readonly #protooRoom: protooTypes.Room;
-	readonly #bot: Bot;
 	readonly #joiningPeers: Map<string, Peer> = new Map();
 	readonly #peers: Map<string, Peer> = new Map();
 	readonly #joiningBroadcasterPeers: Map<string, BroadcasterPeer> = new Map();
 	readonly #broadcasterPeers: Map<string, BroadcasterPeer> = new Map();
-	readonly #chatHistory: {
-		id: string;
-		senderId: string;
-		displayName: string;
-		content: string;
-		time: number;
-		seq: number;
-		conversationId: string;
-		reactions: any[];
-		isEdited: boolean;
-		createdAt: number;
-		replyToMessageId?: string;
-		clientId?: string;
-	}[] = [];
-	#nextChatSeq: number = 0;
+	readonly #chatManager: ChatManager = new ChatManager();
 	readonly #createdAt: Date;
 	#closed: boolean = false;
 
@@ -178,12 +144,6 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 
 		const protooRoom = new protoo.Room();
 
-		const bot = await Bot.create({
-			usePipeTransports,
-			producerRouter,
-			consumerRouter,
-		});
-
 		const room = new Room({
 			logger,
 			roomId,
@@ -197,7 +157,6 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 			audioLevelObserver,
 			activeSpeakerObserver,
 			protooRoom,
-			bot,
 		});
 
 		return room;
@@ -216,7 +175,6 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 		audioLevelObserver,
 		activeSpeakerObserver,
 		protooRoom,
-		bot,
 	}: RoomConstructorOptions) {
 		super();
 
@@ -235,7 +193,6 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 		this.#audioLevelObserver = audioLevelObserver;
 		this.#activeSpeakerObserver = activeSpeakerObserver;
 		this.#protooRoom = protooRoom;
-		this.#bot = bot;
 		this.#createdAt = new Date();
 
 		this.handleProducerRouter();
@@ -299,53 +256,7 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 		};
 	}
 
-	addChatMessage({
-		senderId,
-		displayName,
-		content,
-		replyToMessageId,
-		clientId,
-	}: {
-		senderId: string;
-		displayName: string;
-		content: string;
-		replyToMessageId?: string;
-		clientId?: string;
-	}): void {
-		const now = Date.now();
-		const message = {
-			id: `m_${now}_${Math.random().toString(36).substring(7)}`,
-			senderId,
-			displayName,
-			content,
-			time: now,
-			seq: this.#nextChatSeq++,
-			conversationId: this.#roomId,
-			reactions: [],
-			isEdited: false,
-			createdAt: now,
-			...(replyToMessageId && { replyToMessageId }),
-			...(clientId && { clientId }),
-		};
 
-		this.#chatHistory.push(message);
-
-		// Keep only last 100 messages.
-		if (this.#chatHistory.length > 100) {
-			this.#chatHistory.shift();
-		}
-
-		this.emit('chat-message', message);
-	}
-
-	getChatMessages(lastSeq: number = -1): any[] {
-		return this.#chatHistory.filter(msg => msg.seq > lastSeq);
-	}
-
-	getPeerDisplayName(peerId: string): string | undefined {
-		const peer = this.#peers.get(peerId) || this.#joiningPeers.get(peerId);
-		return peer?.displayName;
-	}
 
 	getBroadcasterPeer(peerId: PeerId): BroadcasterPeer | undefined {
 		return (
@@ -576,19 +487,7 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 				}
 			}
 
-			void peer.consumeData({ dataProducer: this.#bot.getDataProducer() });
 
-			// Send chat history to newly joined peer.
-			if (this.#chatHistory.length > 0) {
-				peer.notify('chatHistory', {
-					messages: this.#chatHistory.map(msg => ({
-						clientId: msg.id,
-						displayName: msg.displayName,
-						text: msg.content,
-						time: msg.time,
-					})),
-				});
-			}
 		});
 
 		peer.on('disconnected', () => {
@@ -599,11 +498,6 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 			}
 		});
 
-		peer.on('sctp-connected', direction => {
-			if (direction == 'consumer') {
-				void peer.sendMessage(`Welcome ${peer.displayName}! ☺️`);
-			}
-		});
 
 		peer.on('get-rtcstats-url', callback => {
 			this.emit('get-rtcstats-url', rtcstatsUrl => {
@@ -735,11 +629,6 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 					break;
 				}
 
-				case 'bot': {
-					void this.#bot.consumeData({ dataProducer, peer });
-
-					break;
-				}
 			}
 		});
 
@@ -768,13 +657,7 @@ export class Room extends EnhancedEventEmitter<RoomEvents> {
 			}
 		});
 
-		peer.on('chat-sent', ({ text, displayName }) => {
-			this.addChatMessage({
-				senderId: peer.id,
-				displayName,
-				content: text,
-			});
-		});
+
 
 		peer.on(
 			'apply-network-throttle',
