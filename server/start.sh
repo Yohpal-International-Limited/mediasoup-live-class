@@ -76,8 +76,13 @@ log_info "detected local IP: \"${ip}\""
 # Set env variables (don't override if already set).
 export WATCH=${WATCH:="false"}
 export TERMINAL=${TERMINAL:="false"}
-export DEBUG=${DEBUG:="mediasoup-demo-server* *INFO* *WARN* *ERROR*"}
-export MEDIASOUP_LISTEN_IP=${MEDIASOUP_LISTEN_IP:="${ip}"}
+export DEBUG=${DEBUG:="mediasoup-demo-server* mediasoup* *INFO* *WARN* *ERROR*"}
+
+# Always listen on all interfaces so any network peer can reach us.
+export MEDIASOUP_LISTEN_IP=0.0.0.0
+
+# Announce the detected LAN IP to WebRTC clients (never override if already set).
+export MEDIASOUP_ANNOUNCED_ADDRESS=${MEDIASOUP_ANNOUNCED_ADDRESS:="${ip}"}
 
 # Command line arguments override environment variables.
 for arg in "$@"; do

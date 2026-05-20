@@ -32,7 +32,6 @@ import type {
 	ProducerAppData,
 	ConsumerAppData,
 	DataProducerAppData,
-	BotDataProducerAppData,
 	DataConsumerAppData,
 } from './types';
 
@@ -413,9 +412,7 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 	async consumeData({
 		dataProducer,
 	}: {
-		dataProducer: mediasoupTypes.DataProducer<
-			DataProducerAppData | BotDataProducerAppData
-		>;
+		dataProducer: mediasoupTypes.DataProducer<DataProducerAppData>;
 	}): Promise<void> {
 		this.#logger.debug(
 			'consumeData() [peerId:%o, dataProducerId:%o, channel:%o]',
@@ -489,18 +486,6 @@ export class Peer extends EnhancedEventEmitter<PeerEvents> {
 		}
 	}
 
-	async sendMessage(message: string): Promise<void> {
-		this.#logger.debug(
-			'sendMessage() [length:%o]',
-			Buffer.byteLength(message, 'utf8')
-		);
-
-		const botDataConsumer = Array.from(this.#dataConsumers.values()).find(
-			dataConsumer => dataConsumer.appData.channel === 'bot'
-		);
-
-		await botDataConsumer?.send(message);
-	}
 
 	notify<Name extends NotificationNameFromServer>(
 		name: Name,

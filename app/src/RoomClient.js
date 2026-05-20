@@ -1,5 +1,6 @@
 import protooClient from 'protoo-client';
 import * as mediasoupClient from 'mediasoup-client';
+import { io } from 'socket.io-client';
 import { AwaitQueue } from 'awaitqueue';
 import { wrapRTCStatsWithDefaultOptions } from '@rtcstats/rtcstats-js';
 import Logger from './Logger';
@@ -81,6 +82,9 @@ export default class RoomClient {
 			displayName,
 			device.flag
 		);
+
+		this._roomId = roomId;
+		this._peerId = peerId;
 
 		// Closed flag.
 		// @type {Boolean}
@@ -245,6 +249,16 @@ export default class RoomClient {
 		// @type {protooClient.Peer}
 		this._protoo = null;
 
+		// Socket.IO client for chat
+		// @type {Socket|null}
+		this._chatSocket = null;
+		this._chatSocketUrl = getProtooUrl({
+			roomId,
+			peerId,
+			consumerReplicas,
+			usePipeTransports,
+		}).replace(/^wss?:\/\//, '').split('/')[0];
+
 		// mediasoup-client Device instance.
 		// @type {mediasoupClient.Device}
 		this._mediasoupDevice = null;
@@ -273,9 +287,6 @@ export default class RoomClient {
 		// @type {mediasoupClient.DataProducer}
 		this._chatDataProducer = null;
 
-		// Local bot DataProducer.
-		// @type {mediasoupClient.DataProducer}
-		this._botDataProducer = null;
 
 		// mediasoup Consumers.
 		// @type {Map<String, mediasoupClient.Consumer>}
@@ -309,6 +320,9 @@ export default class RoomClient {
 		this._closed = true;
 
 		logger.debug('close()');
+
+		// Close chat socket
+		this._closeChatSocket();
 
 		// Close rtcstats-js client.
 		if (this._rtcstatsTrace) {
@@ -531,22 +545,6 @@ export default class RoomClient {
 								protocol,
 								appData: { ...appData, peerId },
 							});
-
-							switch (appData.channel) {
-								case 'chat': {
-									// TODO: For debugging.
-									window.CHAT_DATA_CONSUMER = dataConsumer;
-
-									break;
-								}
-
-								case 'bot': {
-									// TODO: For debugging.
-									window.BOT_DATA_CONSUMER = dataConsumer;
-
-									break;
-								}
-							}
 
 							// Store in the map.
 							this._dataConsumers.set(dataConsumer.id, dataConsumer);
@@ -1981,222 +1979,6 @@ export default class RoomClient {
 		}
 	}
 
-	async enableBotDataProducer() {
-		logger.debug('enableBotDataProducer()');
-
-		// NOTE: Should enable this code but it's useful for testing.
-		// if (this._botDataProducer)
-		// 	return;
-
-		try {
-			// Create chat DataProducer.
-			this._botDataProducer = await this._sendTransport.produceData({
-				// ordered: false,
-				// maxPacketLifeTime: 2000,
-				ordered: true,
-				label: 'bot',
-				priority: 'medium',
-				appData: { channel: 'bot' },
-			});
-
-			// TODO: For debugging.
-			window.BOT_DATA_PRODUCER = this._botDataProducer;
-
-			store.dispatch(
-				stateActions.addDataProducer({
-					id: this._botDataProducer.id,
-					sctpStreamParameters: this._botDataProducer.sctpStreamParameters,
-					label: this._botDataProducer.label,
-					protocol: this._botDataProducer.protocol,
-				})
-			);
-
-			this._botDataProducer.on('transportclose', () => {
-				this._botDataProducer = null;
-			});
-
-			this._botDataProducer.on('open', () => {
-				logger.debug('bot DataProducer "open" event');
-			});
-
-			this._botDataProducer.on('close', () => {
-				logger.error('bot DataProducer "close" event');
-
-				this._botDataProducer = null;
-
-				store.dispatch(
-					requestActions.notify({
-						type: 'error',
-						text: 'Bot DataProducer closed',
-					})
-				);
-			});
-
-			this._botDataProducer.on('error', error => {
-				logger.error('bot DataProducer "error" event:%o', error);
-
-				store.dispatch(
-					requestActions.notify({
-						type: 'error',
-						text: `Bot DataProducer error: ${error}`,
-					})
-				);
-			});
-
-			this._botDataProducer.on('bufferedamountlow', () => {
-				logger.debug('bot DataProducer "bufferedamountlow" event');
-			});
-		} catch (error) {
-			logger.error('enableBotDataProducer() | failed:%o', error);
-
-			store.dispatch(
-				requestActions.notify({
-					type: 'error',
-					text: `Error enabling bot DataProducer: ${error}`,
-				})
-			);
-
-			throw error;
-		}
-	}
-
-	async sendChatMessage(text) {
-		logger.debug('sendChatMessage() [text:"%s]', text);
-
-		if (!this._chatDataProducer) {
-			store.dispatch(
-				requestActions.notify({
-					type: 'error',
-					text: 'No chat DataProducer',
-				})
-			);
-
-			return;
-		}
-
-		const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-		const message = { type: 'chat', clientId, text };
-
-		// Optimistic insert with status 'sending'.
-		store.dispatch(
-			stateActions.addChatMessage({
-				id: clientId,
-				clientId,
-				displayName: this._displayName || 'You',
-				text,
-				time: Date.now(),
-				me: true,
-				status: 'sending',
-			})
-		);
-
-		// If DataProducer not open yet, queue the message.
-		if (this._chatDataProducer.readyState !== 'open') {
-			logger.warn(
-				'sendChatMessage() | DataProducer not open, queueing [readyState:%s]',
-				this._chatDataProducer.readyState
-			);
-
-			this._chatMessageQueue.push(message);
-
-			return;
-		}
-
-		await this._sendChatMessageNow(clientId, message);
-	}
-
-	async _sendChatMessageNow(clientId, message) {
-		try {
-			const payload = JSON.stringify(message);
-
-			this._chatDataProducer.send(payload);
-
-			logger.debug('_sendChatMessageNow() | sent [clientId:%s]', clientId);
-
-			// Set ACK timeout — mark failed if no confirmation within 5s.
-			const ackTimer = setTimeout(() => {
-				logger.warn(
-					'_sendChatMessageNow() | ACK timeout [clientId:%s]',
-					clientId
-				);
-
-				store.dispatch(
-					stateActions.updateChatMessageStatus(clientId, 'failed')
-				);
-
-				this._chatAckPending.delete(clientId);
-			}, 5000);
-
-			this._chatAckPending.set(clientId, ackTimer);
-
-			// Also notify server via signaling for a reliable ACK.
-			try {
-				await this._protoo.request('chatSent', {
-					clientId,
-					text: message.text,
-					displayName: this._displayName || 'You',
-				});
-			} catch (ackError) {
-				logger.warn('sendChatMessage() | signaling ACK failed:%o', ackError);
-			}
-		} catch (error) {
-			logger.error('_sendChatMessageNow() | failed:%o', error);
-
-			store.dispatch(stateActions.updateChatMessageStatus(clientId, 'failed'));
-
-			store.dispatch(
-				requestActions.notify({
-					type: 'error',
-					text: `Chat send failed: ${error}`,
-				})
-			);
-		}
-	}
-
-	_flushChatMessageQueue() {
-		if (
-			!this._chatDataProducer ||
-			this._chatDataProducer.readyState !== 'open'
-		) {
-			return;
-		}
-
-		while (this._chatMessageQueue.length > 0) {
-			const msg = this._chatMessageQueue.shift();
-
-			const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-			this._sendChatMessageNow(clientId, msg);
-		}
-	}
-
-	async sendBotMessage(text) {
-		logger.debug('sendBotMessage() [text:"%s]', text);
-
-		if (!this._botDataProducer) {
-			store.dispatch(
-				requestActions.notify({
-					type: 'error',
-					text: 'No bot DataProducer',
-				})
-			);
-
-			return;
-		}
-
-		try {
-			this._botDataProducer.send(text);
-		} catch (error) {
-			logger.error('bot DataProducer.send() failed:%o', error);
-
-			store.dispatch(
-				requestActions.notify({
-					type: 'error',
-					text: `bot DataProducer.send() failed: ${error}`,
-				})
-			);
-		}
-	}
 
 	changeDisplayName(displayName) {
 		logger.debug('changeDisplayName() [displayName:"%s"]', displayName);
@@ -2295,19 +2077,6 @@ export default class RoomClient {
 		return stats;
 	}
 
-	async getBotDataProducerRemoteStats() {
-		logger.debug('getBotDataProducerRemoteStats()');
-
-		const dataProducer = this._botDataProducer;
-
-		if (!dataProducer) return;
-
-		const { stats } = await this._protoo.request('getDataProducerStats', {
-			dataProducerId: dataProducer.id,
-		});
-
-		return stats;
-	}
 
 	async getDataConsumerRemoteStats(dataConsumerId) {
 		logger.debug('getDataConsumerRemoteStats()');
@@ -2461,7 +2230,7 @@ export default class RoomClient {
 			//
 			// Just get access to the mic and DO NOT close the mic track for a while.
 			// Super hack!
-			{
+			try {
 				const stream = await navigator.mediaDevices.getUserMedia({
 					audio: true,
 				});
@@ -2470,6 +2239,8 @@ export default class RoomClient {
 				audioTrack.enabled = false;
 
 				setTimeout(() => audioTrack.stop(), 120000);
+			} catch (error) {
+				logger.warn('_joinRoom() | autoplay policy hack failed: %o', error);
 			}
 
 			// Create mediasoup Transport for sending (unless we don't want to produce).
@@ -2732,7 +2503,6 @@ export default class RoomClient {
 
 				if (this._useDataChannel) {
 					this.enableChatDataProducer();
-					this.enableBotDataProducer();
 				}
 			}
 
@@ -2836,5 +2606,43 @@ export default class RoomClient {
 		else throw new Error('video.captureStream() not supported');
 
 		return this._externalVideoStream;
+	}
+
+	async sendChatMessage(text) {
+		logger.debug('sendChatMessage() [text:"%s"]', text);
+
+		if (!this._chatDataProducer) {
+			store.dispatch(
+				requestActions.notify({
+					type: 'error',
+					text: 'No chat DataProducer',
+				})
+			);
+
+			return;
+		}
+
+		try {
+			this._chatDataProducer.send(text);
+
+			store.dispatch(
+				stateActions.addChatMessage({
+					id: `${Date.now()}-${this._peerId}`,
+					displayName: this._displayName || 'You',
+					text: text,
+					time: Date.now(),
+					me: true,
+				})
+			);
+		} catch (error) {
+			logger.error('chat DataProducer.send() failed:%o', error);
+
+			store.dispatch(
+				requestActions.notify({
+					type: 'error',
+					text: `chat DataProducer.send() failed: ${error}`,
+				})
+			);
+		}
 	}
 }
