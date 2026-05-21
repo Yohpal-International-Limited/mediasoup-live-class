@@ -93,7 +93,7 @@ Peer.propTypes = {
 	onSetStatsPeerId: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = (state, { id }) => {
+const mapStateToProps = (state, { id, videoConsumerId }) => {
 	const me = state.me;
 	const peer = state.peers[id];
 	const consumersArray = peer.consumers.map(
@@ -102,13 +102,24 @@ const mapStateToProps = (state, { id }) => {
 	const audioConsumer = consumersArray.find(
 		consumer => consumer.track.kind === 'audio'
 	);
-	const videoConsumer = consumersArray.find(
-		consumer => consumer.track.kind === 'video'
-	);
+	let videoConsumer;
+
+	if (videoConsumerId) {
+		videoConsumer = state.consumers[videoConsumerId];
+	} else {
+		videoConsumer = consumersArray.find(
+			consumer => consumer.track.kind === 'video'
+		);
+	}
+
+	const isShare =
+		videoConsumer &&
+		videoConsumer.appData &&
+		videoConsumer.appData.source === 'screensharing';
 
 	return {
 		peer,
-		audioConsumer,
+		audioConsumer: isShare ? null : audioConsumer,
 		videoConsumer,
 		audioMuted: me.audioMuted,
 		faceDetection: state.room.faceDetection,

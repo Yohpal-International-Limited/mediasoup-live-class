@@ -23,6 +23,7 @@ class Me extends React.Component {
 		} = this.props;
 
 		const videoVisible = Boolean(videoProducer) && !videoProducer.paused;
+		const audioMuted = !audioProducer || audioProducer.paused;
 
 		return (
 			<div data-component="Me">
@@ -40,6 +41,7 @@ class Me extends React.Component {
 					audioTrack={audioProducer ? audioProducer.track : null}
 					videoTrack={videoProducer ? videoProducer.track : null}
 					videoVisible={videoVisible}
+					audioMuted={audioMuted}
 					audioCodec={audioProducer ? audioProducer.codec : null}
 					videoCodec={videoProducer ? videoProducer.codec : null}
 					audioScore={audioProducer ? audioProducer.score : null}
@@ -75,19 +77,28 @@ Me.propTypes = {
 	onSetStatsPeerId: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, { videoProducerId }) => {
 	const producersArray = Object.values(state.producers);
 	const audioProducer = producersArray.find(
 		producer => producer.track.kind === 'audio'
 	);
-	const videoProducer = producersArray.find(
-		producer => producer.track.kind === 'video'
-	);
+	let videoProducer;
+
+	if (videoProducerId) {
+		videoProducer = state.producers[videoProducerId];
+	} else {
+		videoProducer = producersArray.find(
+			producer => producer.track.kind === 'video'
+		);
+	}
+
+	const isShare = videoProducer && videoProducer.type === 'share';
 
 	return {
 		me: state.me,
-		audioProducer: audioProducer,
+		audioProducer: isShare ? null : audioProducer,
 		videoProducer: videoProducer,
+		audioMuted: state.me.audioMuted,
 		faceDetection: state.room.faceDetection,
 	};
 };

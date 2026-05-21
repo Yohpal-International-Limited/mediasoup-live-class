@@ -8,7 +8,6 @@ import Swal from 'sweetalert2';
 import * as appPropTypes from './appPropTypes';
 import { withRoomContext } from '../RoomContext';
 import * as requestActions from '../redux/requestActions';
-import { Appear } from './transitions';
 import Me from './Me';
 import ChatInput from './ChatInput';
 import ChatMessages from './ChatMessages';
@@ -71,7 +70,7 @@ class Room extends React.Component {
 			room,
 			me,
 			audioProducer,
-			videoProducer,
+			videoProducers,
 			peers,
 			amActiveSpeaker,
 			amSpeakingPeer,
@@ -79,6 +78,25 @@ class Room extends React.Component {
 		} = this.props;
 
 		const { darkMode, sidePanelOpen, activePanelTab } = this.state;
+
+		const meTiles = [];
+
+		if (videoProducers.length === 0) {
+			meTiles.push({ type: 'me' });
+		} else {
+			videoProducers.forEach(vp => {
+				meTiles.push({
+					type: vp.type === 'share' ? 'share' : 'me',
+					videoProducerId: vp.id,
+				});
+			});
+		}
+
+		let videoProducer = videoProducers.find(p => p.type !== 'share');
+
+		if (!videoProducer && videoProducers.length > 0) {
+			videoProducer = videoProducers[0];
+		}
 
 		let micState;
 		if (!me.canSendMic) micState = 'unsupported';
@@ -94,7 +112,7 @@ class Room extends React.Component {
 
 		let shareState;
 		if (!me.canSendWebcam) shareState = 'unsupported';
-		else if (videoProducer && videoProducer.type === 'share') shareState = 'on';
+		else if (videoProducers.some(p => p.type === 'share')) shareState = 'on';
 		else shareState = 'off';
 
 		const peerCount = Object.keys(peers).length;
@@ -104,12 +122,11 @@ class Room extends React.Component {
 			: '?';
 
 		return (
-			<Appear duration={300}>
-				<div data-component="Room" className="ics-theme">
-					<Notifications />
+			<div data-component="Room" className="ics-theme">
+				<Notifications />
 
-					{/* Sidebar */}
-					<aside className={classnames('ics-sidebar', { open: sidePanelOpen })}>
+				{/* Sidebar */}
+				<aside className={classnames('ics-sidebar', { open: sidePanelOpen })}>
 						<div className="sidebar-header">
 							<img src="/images/logo.png" alt="ICS" className="sidebar-logo" />
 							<span className="brand-text">ICS LIVE</span>
@@ -268,14 +285,17 @@ class Room extends React.Component {
 
 						<div className="ics-video-grid-container">
 							<div className="video-grid">
-								<div
-									className={classnames('video-tile-wrapper', {
-										speaking: amSpeakingPeer,
-										active: amActiveSpeaker,
-									})}
-								>
-									<Me />
-								</div>
+								{meTiles.map(tile => (
+									<div
+										key={tile.videoProducerId || 'me'}
+										className={classnames('video-tile-wrapper', {
+											speaking: amSpeakingPeer,
+											active: amActiveSpeaker,
+										})}
+									>
+										<Me videoProducerId={tile.videoProducerId} />
+									</div>
+								))}
 								<Peers />
 							</div>
 						</div>
@@ -371,7 +391,6 @@ class Room extends React.Component {
 					<Stats roomClient={roomClient} />
 					<ReactTooltip effect="solid" className="ics-tooltip" />
 				</div>
-			</Appear>
 		);
 	}
 
@@ -380,18 +399,17 @@ class Room extends React.Component {
 		roomClient.join();
 	}
 }
-
 Room.propTypes = {
 	roomClient: PropTypes.any.isRequired,
-	room: appPropTypes.Room.isRequired,
+	room: PropTypes.object.isRequired,
 	me: appPropTypes.Me.isRequired,
 	audioProducer: appPropTypes.Producer,
-	videoProducer: appPropTypes.Producer,
+	videoProducers: PropTypes.arrayOf(appPropTypes.Producer).isRequired,
 	peers: PropTypes.object.isRequired,
 	amActiveSpeaker: PropTypes.bool.isRequired,
 	amSpeakingPeer: PropTypes.bool.isRequired,
-	onRoomLinkCopy: PropTypes.func.isRequired,
 	onLeave: PropTypes.func.isRequired,
+	onRoomLinkCopy: PropTypes.func.isRequired,
 	joinMode: PropTypes.string,
 };
 
@@ -400,15 +418,16 @@ const mapStateToProps = state => {
 	const audioProducer = producersArray.find(
 		p => p.track && p.track.kind === 'audio'
 	);
-	const videoProducer = producersArray.find(
+	const videoProducers = producersArray.filter(
 		p => p.track && p.track.kind === 'video'
 	);
+
 	return {
 		room: state.room,
 		me: state.me,
 		peers: state.peers,
 		audioProducer,
-		videoProducer,
+		videoProducers,
 		amActiveSpeaker: state.me.id === state.room.activeSpeakerId,
 		amSpeakingPeer: state.room.speakingPeerIds.includes(state.me.id),
 	};

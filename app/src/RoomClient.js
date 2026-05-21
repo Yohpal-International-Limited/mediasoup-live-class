@@ -1,6 +1,5 @@
 import protooClient from 'protoo-client';
 import * as mediasoupClient from 'mediasoup-client';
-import { io } from 'socket.io-client';
 import { AwaitQueue } from 'awaitqueue';
 import { wrapRTCStatsWithDefaultOptions } from '@rtcstats/rtcstats-js';
 import Logger from './Logger';
@@ -249,16 +248,6 @@ export default class RoomClient {
 		// @type {protooClient.Peer}
 		this._protoo = null;
 
-		// Socket.IO client for chat
-		// @type {Socket|null}
-		this._chatSocket = null;
-		this._chatSocketUrl = getProtooUrl({
-			roomId,
-			peerId,
-			consumerReplicas,
-			usePipeTransports,
-		}).replace(/^wss?:\/\//, '').split('/')[0];
-
 		// mediasoup-client Device instance.
 		// @type {mediasoupClient.Device}
 		this._mediasoupDevice = null;
@@ -321,16 +310,28 @@ export default class RoomClient {
 
 		logger.debug('close()');
 
-		// Close chat socket
-		this._closeChatSocket();
+		// Close protoo Peer
+		if (this._protoo) {
+			this._protoo.close();
+		}
+
+		// Stop local producers and tracks.
+		if (this._micProducer) {
+			this.disableMic();
+		}
+
+		if (this._webcamProducer) {
+			this.disableWebcam();
+		}
+
+		if (this._shareProducer) {
+			this.disableShare();
+		}
 
 		// Close rtcstats-js client.
 		if (this._rtcstatsTrace) {
 			this._rtcstatsTrace.close();
 		}
-
-		// Close protoo Peer
-		this._protoo.close();
 
 		// Close mediasoup Transports.
 		if (this._sendTransport) {
@@ -350,6 +351,21 @@ export default class RoomClient {
 		store.dispatch(
 			stateActions.setMediasoupClientVersion(mediasoupClient.version)
 		);
+
+		// Bypassing ngrok browser warning for free-tier users
+		try {
+			if (this._protooUrl.includes('.ngrok')) {
+				const skipUrl = this._protooUrl.replace(/^ws/, 'http');
+
+				await fetch(skipUrl, {
+					method: 'GET',
+					headers: { 'ngrok-skip-browser-warning': 'true' },
+					mode: 'no-cors',
+				});
+			}
+		} catch (error) {
+			logger.warn('ngrok bypass fetch failed: %o', error);
+		}
 
 		const protooTransport = new protooClient.WebSocketTransport(
 			this._protooUrl
@@ -378,18 +394,7 @@ export default class RoomClient {
 				})
 			);
 
-			// Close mediasoup Transports.
-			// if (this._sendTransport) {
-			// 	this._sendTransport.close();
-			// 	this._sendTransport = null;
-			// }
-
-			// if (this._recvTransport) {
-			// 	this._recvTransport.close();
-			// 	this._recvTransport = null;
-			// }
-
-			store.dispatch(stateActions.setRoomState('closed'));
+			this.close();
 		});
 
 		this._protoo.on('close', () => {
@@ -475,6 +480,7 @@ export default class RoomClient {
 										codec:
 											consumer.rtpParameters.codecs[0].mimeType.split('/')[1],
 										track: consumer.track,
+										appData: consumer.appData,
 									},
 									peerId
 								)
@@ -1103,9 +1109,11 @@ export default class RoomClient {
 
 		store.dispatch(stateActions.removeProducer(this._micProducer.id));
 
-		this._protoo.notify('closeProducer', {
-			producerId: this._micProducer.id,
-		});
+		try {
+			this._protoo.notify('closeProducer', {
+				producerId: this._micProducer.id,
+			});
+		} catch (error) {}
 
 		this._micProducer = null;
 	}
@@ -1355,9 +1363,11 @@ export default class RoomClient {
 
 		store.dispatch(stateActions.removeProducer(this._webcamProducer.id));
 
-		this._protoo.notify('closeProducer', {
-			producerId: this._webcamProducer.id,
-		});
+		try {
+			this._protoo.notify('closeProducer', {
+				producerId: this._webcamProducer.id,
+			});
+		} catch (error) {}
 
 		this._webcamProducer = null;
 	}
@@ -1728,9 +1738,11 @@ export default class RoomClient {
 
 		store.dispatch(stateActions.removeProducer(this._shareProducer.id));
 
-		this._protoo.notify('closeProducer', {
-			producerId: this._shareProducer.id,
-		});
+		try {
+			this._protoo.notify('closeProducer', {
+				producerId: this._shareProducer.id,
+			});
+		} catch (error) {}
 
 		this._shareProducer = null;
 	}
