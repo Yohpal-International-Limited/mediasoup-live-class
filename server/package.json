@@ -20,7 +20,7 @@
 		"mediasoup-demo-server-connect-terminal": "bin/mediasoup-demo-server-connect-terminal"
 	},
 	"engines": {
-		"node": ">=22"
+		"node": ">=20"
 	},
 	"keywords": [
 		"mediasoup",

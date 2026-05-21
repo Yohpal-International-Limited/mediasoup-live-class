@@ -67,6 +67,8 @@ export default class PeerView extends React.Component {
 			onChangeVideoPriority,
 			onRequestKeyFrame,
 			onStatsClick,
+			audioTrack,
+			videoTrack,
 		} = this.props;
 
 		const {
@@ -79,12 +81,12 @@ export default class PeerView extends React.Component {
 			maxSpatialLayer,
 		} = this.state;
 
-		const tileAudioMuted = isMe ? false : audioMuted;
-		const micState = tileAudioMuted ? 'off' : 'on';
-		const camState = videoVisible ? 'on' : 'off';
 		const initial = peer.displayName
 			? peer.displayName.charAt(0).toUpperCase()
 			: '?';
+
+		const micState = (audioProducerId || audioConsumerId) && !audioMuted ? 'on' : 'off';
+		const camState = videoVisible ? 'on' : 'off';
 
 		return (
 			<div data-component="PeerView" className="ics-peerview">
@@ -175,6 +177,15 @@ export default class PeerView extends React.Component {
 						</div>
 
 						<div className="action-buttons">
+							{videoTrack && (
+								<button
+									className="action-btn"
+									onClick={() => this._handleToggleFullscreen()}
+									data-tip="Toggle Fullscreen"
+								>
+									<i className="fa-solid fa-expand" />
+								</button>
+							)}
 							<button
 								className="action-btn"
 								onClick={() => this.setState({ showInfo: !showInfo })}
@@ -259,8 +270,15 @@ export default class PeerView extends React.Component {
 		if (this._hark) this._hark.stop();
 		clearInterval(this._videoResolutionPeriodicTimer);
 		cancelAnimationFrame(this._faceDetectionRequestAnimationFrame);
+		const audioElem = this._audioElemRef.current;
 		const videoElem = this._videoElemRef.current;
+		if (audioElem) {
+			audioElem.pause();
+			audioElem.srcObject = null;
+		}
 		if (videoElem) {
+			videoElem.pause();
+			videoElem.srcObject = null;
 			videoElem.oncanplay = null;
 			videoElem.onplay = null;
 			videoElem.onpause = null;
@@ -392,6 +410,20 @@ export default class PeerView extends React.Component {
 		const canvasElem = this._canvasElemRef.current;
 		canvasElem.width = 0;
 		canvasElem.height = 0;
+	}
+
+	_handleToggleFullscreen() {
+		const videoElem = this._videoElemRef.current;
+
+		if (!videoElem) return;
+
+		if (document.fullscreenElement) {
+			document.exitFullscreen();
+		} else {
+			videoElem.requestFullscreen().catch(err => {
+				logger.error('Error attempting to enable full-screen mode: %o', err);
+			});
+		}
 	}
 
 	_printProducerScore(id, score) {

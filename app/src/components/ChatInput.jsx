@@ -106,7 +106,6 @@ ChatInput.propTypes = {
 	roomClient: PropTypes.any.isRequired,
 	connected: PropTypes.bool.isRequired,
 	chatDataProducer: PropTypes.any,
-	chatDataProducer: PropTypes.any,
 	displayName: PropTypes.string,
 	peerId: PropTypes.string,
 	replyToMessage: PropTypes.any,

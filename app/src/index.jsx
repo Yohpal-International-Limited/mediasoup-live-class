@@ -42,6 +42,12 @@ domready(async () => {
 
 	await utils.initialize();
 
+	window.addEventListener('beforeunload', () => {
+		if (roomClient) {
+			roomClient.close();
+		}
+	});
+
 	run();
 });
 

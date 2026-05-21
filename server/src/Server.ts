@@ -127,6 +127,15 @@ export class Server extends EnhancedEventEmitter<ServerEvents> {
 	}
 
 	private static computeHttpOriginHeader(config: ServerConfig): string {
+		if (process.env['MEDIASOUP_ORIGIN']) {
+			logger.info(
+				'computeHttpOriginHeader() | using MEDIASOUP_ORIGIN from environment: %o',
+				process.env['MEDIASOUP_ORIGIN']
+			);
+
+			return process.env['MEDIASOUP_ORIGIN'];
+		}
+
 		const schema = config.http.tls ? 'https' : 'http';
 		const domain = config.domain;
 		const port = config.http.listenPort;

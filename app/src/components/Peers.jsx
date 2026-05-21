@@ -3,25 +3,23 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import classnames from 'classnames';
 import * as appPropTypes from './appPropTypes';
-import { Appear } from './transitions';
 import Peer from './Peer';
 
-const Peers = ({ peers, activeSpeakerId, speakingPeerIds }) => {
+const Peers = ({ peerTiles, activeSpeakerId, speakingPeerIds }) => {
 	return (
 		<>
-			{peers.map(peer => {
+			{peerTiles.map(tile => {
 				return (
-					<Appear key={peer.id} duration={1000}>
-						<div
-							className={classnames('video-tile-wrapper', {
-								'active-speaker': peer.id === activeSpeakerId,
-								speaking: speakingPeerIds.includes(peer.id),
-								active: peer.id === activeSpeakerId,
-							})}
-						>
-							<Peer id={peer.id} />
-						</div>
-					</Appear>
+					<div
+						key={`${tile.peerId}-${tile.videoConsumerId || 'none'}`}
+						className={classnames('video-tile-wrapper', {
+							'active-speaker': tile.peerId === activeSpeakerId,
+							speaking: speakingPeerIds.includes(tile.peerId),
+							active: tile.peerId === activeSpeakerId,
+						})}
+					>
+						<Peer id={tile.peerId} videoConsumerId={tile.videoConsumerId} />
+					</div>
 				);
 			})}
 		</>
@@ -29,16 +27,41 @@ const Peers = ({ peers, activeSpeakerId, speakingPeerIds }) => {
 };
 
 Peers.propTypes = {
-	peers: PropTypes.arrayOf(appPropTypes.Peer).isRequired,
+	peerTiles: PropTypes.arrayOf(
+		PropTypes.shape({
+			peerId: PropTypes.string.isRequired,
+			videoConsumerId: PropTypes.string,
+		})
+	).isRequired,
 	activeSpeakerId: PropTypes.string,
 	speakingPeerIds: PropTypes.arrayOf(PropTypes.string).isRequired,
 };
 
 const mapStateToProps = state => {
-	const peersArray = Object.values(state.peers);
+	const peers = Object.values(state.peers);
+	const consumers = state.consumers;
+
+	const peerTiles = [];
+
+	peers.forEach(peer => {
+		const videoConsumers = peer.consumers
+			.map(cid => consumers[cid])
+			.filter(c => c && c.track.kind === 'video');
+
+		if (videoConsumers.length === 0) {
+			peerTiles.push({ peerId: peer.id });
+		} else {
+			videoConsumers.forEach(vc => {
+				peerTiles.push({
+					peerId: peer.id,
+					videoConsumerId: vc.id,
+				});
+			});
+		}
+	});
 
 	return {
-		peers: peersArray,
+		peerTiles,
 		activeSpeakerId: state.room.activeSpeakerId,
 		speakingPeerIds: state.room.speakingPeerIds,
 	};
